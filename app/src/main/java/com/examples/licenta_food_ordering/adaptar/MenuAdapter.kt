@@ -46,13 +46,12 @@ class MenuAdapter(private val menuItems: List<MenuItem>, private val requireCont
             requireContext.startActivity(intent)
         }
 
-        //set data into recycler view items
         fun bind(position: Int) {
             val menuItem=menuItems[position]
-            binding.apply {
+            binding.apply {  //acceseaza si config elementele din xml
                 menuFoodName.text=menuItem.foodName
                 menuPrice.text=menuItem.foodPrice
-                val uri= Uri.parse(menuItem.foodImage)
+                val uri= Uri.parse(menuItem.foodImage) //transforma url-ul imaginii intr-un ob Uri
                 Glide.with(requireContext).load(uri).into(menuImage)
             }
         }

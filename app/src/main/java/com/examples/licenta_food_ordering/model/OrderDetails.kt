@@ -5,20 +5,21 @@ import android.os.Parcelable
 import java.io.Serializable
 import java.util.ArrayList
 
-class OrderDetails(): Serializable {
-    var userUid: String?=null
-    var userName: String?=null
-    var foodNames: MutableList<String>?=null
-    var foodImages: MutableList<String>?=null
-    var foodPrices: MutableList<String>?=null
-    var foodQuantities: MutableList<Int>?=null
-    var address: String?=null
-    var totalPrice: String?=null
-    var phoneNumber: String?=null
-    var orderAccepted: Boolean=false
-    var paymentReceived: Boolean=false
-    var itemPushkey: String?=null
-    var currentTime: Long=0
+class OrderDetails() : Serializable, Parcelable {
+    var userUid: String? = null
+    var userName: String? = null
+    var foodNames: MutableList<String>? = null
+    var foodImages: MutableList<String>? = null
+    var foodPrices: MutableList<String>? = null
+    var foodQuantities: MutableList<Int>? = null
+    var address: String? = null
+    var totalPrice: String? = null
+    var phoneNumber: String? = null
+    var orderAccepted: Boolean = false
+    var paymentReceived: Boolean = false
+    var itemPushkey: String? = null
+    var currentTime: Long = 0
+    var adminUserId: String? = null
 
     constructor(parcel: Parcel) : this() {
         userUid = parcel.readString()
@@ -30,6 +31,7 @@ class OrderDetails(): Serializable {
         paymentReceived = parcel.readByte() != 0.toByte()
         itemPushkey = parcel.readString()
         currentTime = parcel.readLong()
+        adminUserId = parcel.readString()
     }
 
     constructor(
@@ -44,25 +46,27 @@ class OrderDetails(): Serializable {
         phone: String,
         time: Long,
         itemPushKey: String?,
-        b: Boolean,
-        b1: Boolean
-    ) : this(){
-        this.userUid=userId
-        this.userName=name
-        this.foodNames=foodItemName
-        this.foodPrices=foodItemPrice
-        this.foodImages=foodItemImage
-        this.foodQuantities=foodItemQuantities
-        this.address=address
-        this.totalPrice=totalAmount
-        this.phoneNumber=phone
-        this.currentTime=time
-        this.itemPushkey=itemPushKey
-        this.orderAccepted=orderAccepted
-        this.paymentReceived=paymentReceived
+        orderAccepted: Boolean,
+        paymentReceived: Boolean,
+        adminUserId: String?
+    ) : this() {
+        this.userUid = userId
+        this.userName = name
+        this.foodNames = foodItemName
+        this.foodPrices = foodItemPrice
+        this.foodImages = foodItemImage
+        this.foodQuantities = foodItemQuantities
+        this.address = address
+        this.totalPrice = totalAmount
+        this.phoneNumber = phone
+        this.currentTime = time
+        this.itemPushkey = itemPushKey
+        this.orderAccepted = orderAccepted
+        this.paymentReceived = paymentReceived
+        this.adminUserId = adminUserId
     }
 
-     fun writeToParcel(parcel: Parcel, flags: Int) {
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(userUid)
         parcel.writeString(userName)
         parcel.writeString(address)
@@ -72,9 +76,10 @@ class OrderDetails(): Serializable {
         parcel.writeByte(if (paymentReceived) 1 else 0)
         parcel.writeString(itemPushkey)
         parcel.writeLong(currentTime)
+        parcel.writeString(adminUserId)
     }
 
-     fun describeContents(): Int {
+    override fun describeContents(): Int {
         return 0
     }
 

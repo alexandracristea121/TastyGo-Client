@@ -16,16 +16,14 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.database
+import com.google.firebase.database.FirebaseDatabase
 
 class LoginActivity : AppCompatActivity() {
-    private var userName: String?=null
+    private var userName: String? = null
     private lateinit var email: String
     private lateinit var password: String
     private lateinit var auth: FirebaseAuth
@@ -41,30 +39,32 @@ class LoginActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(binding.root)
 
-        val googleSignInOptions=GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build()
-        auth= Firebase.auth
-        database=Firebase.database.reference
-        googleSignInClient=GoogleSignIn.getClient(this, googleSignInOptions)
+        val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        auth = FirebaseAuth.getInstance()
+        database = FirebaseDatabase.getInstance().reference
+        googleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions)
 
-        binding.loginButton.setOnClickListener{
+        binding.loginButton.setOnClickListener {
+            email = binding.emailAddress.text.toString().trim()
+            password = binding.password.text.toString().trim()
 
-
-            email=binding.emailAddress.text.toString().trim()
-            password=binding.password.text.toString().trim()
-            if(email.isBlank() || password.isBlank()){
-                Toast.makeText(this, "Please enter all the details", Toast.LENGTH_SHORT).show()
-            }else{
+            if (email.isBlank() || password.isBlank()) {
+                Toast.makeText(this, "Please enter both email and password", Toast.LENGTH_SHORT).show()
+            } else {
                 createUser()
-                Toast.makeText(this, "Login successfull", Toast.LENGTH_SHORT).show()
             }
         }
-        binding.donthavebutton.setOnClickListener{
+
+        binding.donthavebutton.setOnClickListener {
             val intent = Intent(this, SignActivity::class.java)
             startActivity(intent)
         }
 
         binding.googleButton.setOnClickListener {
-            val signInIntent=googleSignInClient.signInIntent
+            val signInIntent = googleSignInClient.signInIntent
             launcher.launch(signInIntent)
         }
 
@@ -75,51 +75,63 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private val launcher=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
-            result->
-        if(result.resultCode== Activity.RESULT_OK){
-            val task=GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            if(task.isSuccessful){
-                val account: GoogleSignInAccount?=task.result
-                val credential= GoogleAuthProvider.getCredential(account?.idToken, null)
-                auth.signInWithCredential(credential).addOnCompleteListener { task->
-                    if(task.isSuccessful){
-                        Toast.makeText(this, "Sign in successfull", Toast.LENGTH_SHORT).show()
+    private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            if (task.isSuccessful) {
+                val account: GoogleSignInAccount? = task.result
+                val credential = GoogleAuthProvider.getCredential(account?.idToken, null)
+                auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Toast.makeText(this, "Google sign-in successful", Toast.LENGTH_SHORT).show()
                         startActivity(Intent(this, MainActivity::class.java))
                         finish()
-                    }else{
-                        Toast.makeText(this, "Sign in field", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "Google sign-in failed. Please try again.", Toast.LENGTH_SHORT).show()
                     }
                 }
+            } else {
+                Toast.makeText(this, "Google sign-in failed. Please try again.", Toast.LENGTH_SHORT).show()
             }
-        }else{
-            Toast.makeText(this, "Sign in field", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun createUser() {
-        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task->
-            if(task.isSuccessful){
-                val user=auth.currentUser
+        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val user = auth.currentUser
                 updateUi(user)
-            }else{
-                auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task->
-                    if(task.isSuccessful){
-                        saveUserData()
-                        val user=auth.currentUser
-                        updateUi(user)
-                    }else{
-                        Toast.makeText(this, "Sign in field", Toast.LENGTH_SHORT).show()
+            } else {
+                val exception = task.exception
+                when {
+                    exception?.message?.contains("There is no user record") == true -> {
+                        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                saveUserData()
+                                val user = auth.currentUser
+                                updateUi(user)
+                            } else {
+                                Toast.makeText(this, "This email is already registered. Try logging in.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    exception?.message?.contains("The password is invalid") == true -> {
+                        Toast.makeText(this, "Invalid password. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
+                    exception?.message?.contains("The email address is badly formatted") == true -> {
+                        Toast.makeText(this, "Invalid email format. Please enter a valid email.", Toast.LENGTH_SHORT).show()
+                    }
+                    else -> {
+                        Toast.makeText(this, "Login failed. Please try again later.", Toast.LENGTH_SHORT).show()
                     }
                 }
-
             }
         }
     }
 
     private fun saveUserData() {
-        email=binding.emailAddress.text.toString().trim()
-        password=binding.password.text.toString().trim()
+        email = binding.emailAddress.text.toString().trim()
+        password = binding.password.text.toString().trim()
         val user = UserModel(userName, email, password)
         val userId = FirebaseAuth.getInstance().currentUser!!.uid
         database.child("user").child(userId).setValue(user)
@@ -127,8 +139,8 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        val currentUser=auth.currentUser
-        if(currentUser!=null){
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
             finish()

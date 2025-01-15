@@ -51,7 +51,6 @@ class CartFragment : Fragment() {
 
 
         binding.proceedButton.setOnClickListener {
-            //get order items details before proceeding to check out
             getOrderItemsDetails()
         }
 
@@ -67,14 +66,11 @@ class CartFragment : Fragment() {
         val foodDescription= mutableListOf<String>()
         val foodIngredient= mutableListOf<String>()
 
-        //get items quantities
         val foodQuantities=cartAdapter.getUpdatedItemsQuantities()
         orderIdReference.addListenerForSingleValueEvent(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 for(foodSnapshot in snapshot.children){
-                    //get the cartItems to respective List
                     val orderItems=foodSnapshot.getValue(CartItems::class.java)
-                    //add items details into list
                     orderItems?.foodName?.let { foodName.add(it) }
                     orderItems?.foodPrice?.let { foodPrice.add(it) }
                     orderItems?.foodDescription?.let { foodDescription.add(it) }
@@ -113,11 +109,9 @@ class CartFragment : Fragment() {
 
     private fun retrieveCartItems() {
 
-        //database reference to the Firebase
         database=FirebaseDatabase.getInstance()
         userId=auth.currentUser?.uid?:""
         val foodReference: DatabaseReference=database.reference.child("user").child(userId).child("CartItems")
-        //list to store cart items
         foodNames= mutableListOf()
         foodPrices= mutableListOf()
         foodDescriptions= mutableListOf()
@@ -125,14 +119,11 @@ class CartFragment : Fragment() {
         foodIngredients= mutableListOf()
         quantity= mutableListOf()
 
-        //fetch data from the database
         foodReference.addListenerForSingleValueEvent(object: ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 for(foodSnapshot in snapshot.children){
-                    //get the cartItems object from the child node
                     val cartItems=foodSnapshot.getValue(CartItems::class.java)
 
-                    //add cart items details to the list
                     cartItems?.foodName?.let { foodNames.add(it) }
                     cartItems?.foodPrice?.let { foodPrices.add(it) }
                     cartItems?.foodDescription?.let { foodDescriptions.add(it) }

@@ -23,7 +23,6 @@ import com.google.firebase.database.ValueEventListener
 
 class CartAdapter (private val context: Context, private val cartItems:MutableList<String>, private val cartItemPrices:MutableList<String>, private var cartDescriptions: MutableList<String>, private var cartImages:MutableList<String>, private val cartQuantity: MutableList<Int>, private var cartIngredient: MutableList<String>) : RecyclerView.Adapter<CartAdapter.CartViewHolder>() {
 
-    //instance Firebase
     private val auth=FirebaseAuth.getInstance()
 
     init {
@@ -34,7 +33,7 @@ class CartAdapter (private val context: Context, private val cartItems:MutableLi
         itemQuantities=IntArray(cartItemNumber){1}
         cartItemsReference=database.reference.child("user").child(userId).child("CartItems")
     }
-    companion object{
+    companion object{  //membru static al clasei; stocheaza variabile comune
         private var itemQuantities: IntArray= intArrayOf()
         private lateinit var cartItemsReference: DatabaseReference
     }
@@ -44,7 +43,7 @@ class CartAdapter (private val context: Context, private val cartItems:MutableLi
         return CartViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: CartViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: CartViewHolder, position: Int) { //leaga date de viewholder
         holder.bind(position)
     }
 
@@ -66,7 +65,6 @@ class CartAdapter (private val context: Context, private val cartItems:MutableLi
                 cartItemPrice.text=cartItemPrices[position]
 
 
-                //load image using Glide
                 val uriString=cartImages[position]
                 val uri= Uri.parse(uriString)
                 Glide.with(context).load(uri).into(cartImage)
@@ -119,7 +117,6 @@ class CartAdapter (private val context: Context, private val cartItems:MutableLi
                     cartItemPrices.removeAt(position)
                     cartIngredient.removeAt(position)
                     Toast.makeText(context, "Item deleted", Toast.LENGTH_SHORT).show()
-                    //update itemQuantities
                     itemQuantities=itemQuantities.filterIndexed { index, i -> index!=position }.toIntArray()
                     notifyItemRemoved(position)
                     notifyItemRangeChanged(position, cartItems.size)
@@ -129,11 +126,11 @@ class CartAdapter (private val context: Context, private val cartItems:MutableLi
             }
         }
 
+        //sterge din firebase si notifica ca sa se actualizeze UI
         private fun getUniqueKeyAtPosition(positionRetrieve: Int, onComplete:(String?) -> Unit) {
             cartItemsReference.addListenerForSingleValueEvent(object : ValueEventListener{
                 override fun onDataChange(snapshot: DataSnapshot) {
                     var uniqueKey:String?=null
-                    //loop fore snapshot children
                     snapshot.children.forEachIndexed { index, dataSnapshot ->
                         if(index==positionRetrieve){
                             uniqueKey=dataSnapshot.key

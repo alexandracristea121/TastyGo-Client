@@ -1,100 +1,229 @@
 package com.examples.licenta_food_ordering.Fragment
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
 import androidx.appcompat.widget.SearchView
-import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.FragmentSearchBinding
-import com.examples.licenta_food_ordering.adaptar.MenuAdapter
-import com.examples.licenta_food_ordering.model.MenuItem
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.examples.licenta_food_ordering.Restaurant
+import com.examples.licenta_food_ordering.RestaurantDetailsActivity
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.firebase.database.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
-class SearchFragment : Fragment() {
-    private lateinit var binding: FragmentSearchBinding
-    private lateinit var adapter : MenuAdapter
+class SearchFragment : Fragment(), OnMapReadyCallback {
+
+    private lateinit var mMap: GoogleMap
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var database: FirebaseDatabase
-    private val originalMenuItems= mutableListOf<com.examples.licenta_food_ordering.model.MenuItem>()
-
+    private lateinit var restaurantsRef: DatabaseReference
+    private val restaurantsList = mutableListOf<Restaurant>()
+    private lateinit var binding: FragmentSearchBinding
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        //inflate the layout for this fragment
-        binding=FragmentSearchBinding.inflate(inflater, container, false)
+        binding = FragmentSearchBinding.inflate(inflater, container, false)
 
-        //retrieve menu items from data base
-        retrieveMenuItem()
-        //setup for search view
+        binding.searchView.queryHint = "Enter the restaurant name"
+
+        database = FirebaseDatabase.getInstance()
+        restaurantsRef = database.getReference("Restaurants")
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+
+        val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment.getMapAsync(this)
+
         setupSearchView()
 
         return binding.root
     }
 
-    private fun retrieveMenuItem() {
-        //get data reference
-        database=FirebaseDatabase.getInstance()
-        //reference to the menu node
-        val foodReference: DatabaseReference=database.reference.child("menu")
-        foodReference.addListenerForSingleValueEvent(object: ValueEventListener{
-            override fun onDataChange(snapshot: DataSnapshot) {
-                for(foodSnapshot in snapshot.children){
+    override fun onMapReady(googleMap: GoogleMap) {
+        mMap = googleMap
 
-                    val menuItem=foodSnapshot.getValue(MenuItem::class.java)
-                    menuItem?.let{
-                        originalMenuItems.add(it)
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            mMap.isMyLocationEnabled = true
+
+            fusedLocationClient.lastLocation
+                .addOnSuccessListener { location: Location? ->
+                    location?.let {
+                        val currentLatLng = LatLng(it.latitude, it.longitude)
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+                    } ?: run {
+                        Toast.makeText(requireContext(), "Location not found", Toast.LENGTH_SHORT).show()
                     }
                 }
-                showAllMenu()
+        } else {
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                1
+            )
+        }
+
+        fetchRestaurants()
+    }
+
+    private fun fetchRestaurants() {
+        restaurantsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                for (restaurantSnapshot in snapshot.children) {
+                    val restaurant = restaurantSnapshot.getValue(Restaurant::class.java)
+                    restaurant?.let {
+                        restaurantsList.add(it)
+                    }
+                }
+                showRestaurantsOnMap(restaurantsList)
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                Toast.makeText(
+                    requireContext(),
+                    "Error fetching restaurants",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         })
     }
 
-    private fun showAllMenu() {
-        val filteredMenuItem = ArrayList(originalMenuItems)
-        setAdapter(filteredMenuItem)
-    }
+    private fun showRestaurantsOnMap(restaurants: List<Restaurant>) {
+        mMap.clear()
 
-    private fun setAdapter(filteredMenuItem: List<MenuItem>) {
-        adapter = MenuAdapter(filteredMenuItem, requireContext())
-        binding.menuRecyclerView.layoutManager=LinearLayoutManager(requireContext())
-        binding.menuRecyclerView.adapter=adapter
-    }
+        for (restaurant in restaurants) {
+            val restaurantLocation = LatLng(restaurant.latitude, restaurant.longitude)
 
-    private fun setupSearchView(){
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
-            android.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean {
-                filterMenuItems(query)
-                return true
-            }
+            Log.d("SearchFragment", "Adding marker for: ${restaurant.name}")
 
-            override fun onQueryTextChange(newText: String): Boolean {
-                filterMenuItems(newText)
-                return true
-            }
-        })
-    }
+            val markerOptions = MarkerOptions()
+                .position(restaurantLocation)
+                .title(restaurant.name)
 
-    private fun filterMenuItems(query: String) {
-        val filteredMenuItems = originalMenuItems.filter {
-            it.foodName?.contains(query, ignoreCase = true) == true
+            val marker = mMap.addMarker(markerOptions)
+
+            marker?.tag = restaurant.id
+
+            val markerIcon = createCustomMarkerWithText(requireContext(), restaurant.name)
+
+            mMap.addMarker(
+                MarkerOptions()
+                    .position(restaurantLocation)
+                    .icon(markerIcon)
+                    .title(restaurant.name)
+            )
         }
-        setAdapter(filteredMenuItems)
+
+        mMap.setOnMarkerClickListener { marker ->
+            val restaurantId = marker.tag as? String
+            if (restaurantId != null) {
+                val intent = Intent(
+                    requireContext(),
+                    RestaurantDetailsActivity::class.java
+                )
+                intent.putExtra("RESTAURANT_ID", restaurantId)
+                startActivity(intent)
+            }
+            true
+        }
     }
 
-    companion object{
+    private fun setupSearchView() {
+        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                query?.let {
+                    searchRestaurantByName(it)
+                }
+                return true
+            }
 
+            override fun onQueryTextChange(newText: String?): Boolean {
+                newText?.let {
+                    searchRestaurantByName(it)
+                }
+                return true
+            }
+        })
+    }
+
+    private fun searchRestaurantByName(query: String) {
+        val filteredRestaurants = restaurantsList.filter {
+            it.name.contains(query, ignoreCase = true)
+        }
+        showRestaurantsOnMap(filteredRestaurants)
+
+        //focus the map on that restaurant
+        if (filteredRestaurants.size == 1) {
+            val restaurant = filteredRestaurants.first()
+            val restaurantLocation = LatLng(restaurant.latitude, restaurant.longitude)
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(restaurantLocation, 15f))
+        }
+    }
+
+    //marker with text
+    fun createCustomMarkerWithText(context: Context, text: String): BitmapDescriptor {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = Color.BLACK
+        paint.textSize = 50f
+        paint.textAlign = Paint.Align.CENTER
+
+        val bounds = Rect()
+        paint.getTextBounds(text, 0, text.length, bounds)
+
+        val bitmap = Bitmap.createBitmap(bounds.width() + 30, bounds.height() + 30, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        canvas.drawText(text, (bitmap.width / 2).toFloat(), (bitmap.height / 2).toFloat(), paint)
+
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    //permisiune la harta
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                onMapReady(mMap)
+            } else {
+                Toast.makeText(requireContext(), "Permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

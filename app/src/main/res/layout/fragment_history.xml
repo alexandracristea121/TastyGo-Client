@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:background="@color/white"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    >
+    android:layout_height="match_parent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -17,7 +16,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
-            android:text="Recent Buy"
+            android:text="Pending Orders"
+            android:textSize="26sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -82,16 +82,20 @@
                     app:layout_constraintBottom_toTopOf="@+id/receivedButton"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
-
                 </androidx.cardview.widget.CardView>
 
                 <Button
                     android:id="@+id/receivedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/textColor"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
                     android:text="Received"
-                    android:visibility="invisible"
+                    android:visibility="gone"
+                    android:textColor="@android:color/white"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:textSize="18sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="@+id/orderedStatus"
                     app:layout_constraintHorizontal_bias="0.5"
@@ -108,7 +112,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
-            android:text="Recent Buy"
+            android:text="Finished Orders"
+            android:textSize="26sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/cardView" />
 
@@ -122,5 +127,6 @@
             app:layout_constraintStart_toStartOf="parent"
             tools:listitem="@layout/buy_again_item"
             app:layout_constraintTop_toBottomOf="@+id/textView27" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

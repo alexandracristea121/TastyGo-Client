@@ -38,13 +38,11 @@ class HistoryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         binding = FragmentHistoryBinding.inflate(layoutInflater, container, false)
-        // Inflate the layout for this fragment
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance()
-        //Retrieve and display the user order history
-        retrieveBuyHustory()
 
-        //recent buy button click
+        retrieveBuyHistory()
+
         binding.recentbuyitem.setOnClickListener {
             seeItemsRecentBuy()
         }
@@ -56,31 +54,51 @@ class HistoryFragment : Fragment() {
     }
 
     private fun updateOrderStatus() {
-        val itemPushKey=listOfOrderItem[0].itemPushkey
-        val completeOrderReference=database.reference.child("CompletedOrder").child(itemPushKey!!)
+        val itemPushKey = listOfOrderItem[0].itemPushkey
+        val completeOrderReference = database.reference.child("CompletedOrder").child(itemPushKey!!)
         completeOrderReference.child("paymentReceived").setValue(true)
     }
 
     private fun seeItemsRecentBuy() {
-        listOfOrderItem.firstOrNull()?.let { recentBuy->
-            val intent=Intent(requireContext(), RecentOrderItems::class.java)
+        listOfOrderItem.firstOrNull()?.let { recentBuy ->
+            val intent = Intent(requireContext(), RecentOrderItems::class.java)
             intent.putExtra("RecentBuyOrderItem", listOfOrderItem)
             startActivity(intent)
         }
     }
 
-    private fun retrieveBuyHustory() {
+    private fun retrieveBuyHistory() {
         binding.recentbuyitem.visibility = View.INVISIBLE
         userId = auth.currentUser?.uid ?: ""
         val buyItemReference: DatabaseReference =
             database.reference.child("user").child(userId).child("BuyHistory")
-        val shortingQuery = buyItemReference.orderByChild("currentTime\n")
+        val sortingQuery = buyItemReference.orderByChild("currentTime")
 
-        shortingQuery.addListenerForSingleValueEvent(object : ValueEventListener {
+        sortingQuery.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 for (buySnapshot in snapshot.children) {
                     val buyHistoryItem = buySnapshot.getValue(OrderDetails::class.java)
                     buyHistoryItem?.let {
+                        listOfOrderItem.add(it)
+                    }
+                }
+                retrieveFinishedOrders()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+            }
+        })
+    }
+
+    private fun retrieveFinishedOrders() {
+        val finishedOrderReference: DatabaseReference = database.reference.child("CompletedOrder")
+        val query = finishedOrderReference.orderByChild("userUid").equalTo(userId)
+
+        query.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                for (orderSnapshot in snapshot.children) {
+                    val finishedOrderItem = orderSnapshot.getValue(OrderDetails::class.java)
+                    finishedOrderItem?.let {
                         listOfOrderItem.add(it)
                     }
                 }
@@ -92,9 +110,7 @@ class HistoryFragment : Fragment() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-
             }
-
         })
     }
 
@@ -109,11 +125,10 @@ class HistoryFragment : Fragment() {
                 val uri = Uri.parse(image)
                 Glide.with(requireContext()).load(uri).into(buyAgainFoodImage)
 
-                val isOrderIsAccepted=listOfOrderItem[0].orderAccepted
-
-                if(isOrderIsAccepted){
+                val isOrderAccepted = listOfOrderItem[0].orderAccepted
+                if (isOrderAccepted) {
                     orderedStatus.background.setTint(Color.GREEN)
-                    receivedButton.visibility=View.VISIBLE
+                    receivedButton.visibility = View.VISIBLE
                 }
             }
         }

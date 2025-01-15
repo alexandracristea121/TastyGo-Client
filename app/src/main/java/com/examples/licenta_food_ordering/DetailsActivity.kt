@@ -62,9 +62,7 @@ class DetailsActivity : AppCompatActivity() {
     private fun addItemToCart() {
         val database=FirebaseDatabase.getInstance().reference
         val userId=auth.currentUser?.uid?:""
-        //create a cartItems object
         val cartItem= CartItems(foodName.toString(), foodPrice.toString(), foodDescriptions.toString(), foodImage.toString(), 1)
-        //save data to cart item to firebase database
         database.child("user").child(userId).child("CartItems").push().setValue(cartItem).addOnSuccessListener {
             Toast.makeText(this, "Items added into cart successfully", Toast.LENGTH_SHORT).show()
         }.addOnFailureListener {

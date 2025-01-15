@@ -8,11 +8,22 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.licenta_food_ordering.databinding.BuyAgainItemBinding
 
-class BuyAgainAdapter(private val buyAgainFoodName:MutableList<String>, private val buyAgainFoodPrice: MutableList<String>, private val buyAgainFoodImage: MutableList<String>, private var requireContext: Context) : RecyclerView.Adapter<BuyAgainAdapter.BuyAgainViewHolder>() {
+class BuyAgainAdapter(
+    private val buyAgainFoodName: MutableList<String>,
+    private val buyAgainFoodPrice: MutableList<String>,
+    private val buyAgainFoodImage: MutableList<String>,
+    private var requireContext: Context
+) : RecyclerView.Adapter<BuyAgainAdapter.BuyAgainViewHolder>() {
 
     override fun onBindViewHolder(holder: BuyAgainViewHolder, position: Int) {
-        holder.bind(buyAgainFoodName[position], buyAgainFoodPrice[position], buyAgainFoodImage[position])
-
+        val validPosition = minOf(buyAgainFoodName.size, buyAgainFoodPrice.size, buyAgainFoodImage.size)
+        if (position < validPosition) {
+            holder.bind(
+                buyAgainFoodName[position],
+                buyAgainFoodPrice[position],
+                buyAgainFoodImage[position]
+            )
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BuyAgainViewHolder {
@@ -20,17 +31,17 @@ class BuyAgainAdapter(private val buyAgainFoodName:MutableList<String>, private 
         return BuyAgainViewHolder(binding)
     }
 
-    override fun getItemCount(): Int = buyAgainFoodName.size
+    override fun getItemCount(): Int {
+        return minOf(buyAgainFoodName.size, buyAgainFoodPrice.size, buyAgainFoodImage.size)
+    }
 
-    inner class BuyAgainViewHolder(private val binding: BuyAgainItemBinding):RecyclerView.ViewHolder(binding.root){
+    inner class BuyAgainViewHolder(private val binding: BuyAgainItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(foodName: String, foodPrice: String, foodImage: String) {
-            binding.buyAgainFoodName.text=foodName
-            binding.buyAgainFoodPrice.text=foodPrice
+            binding.buyAgainFoodName.text = foodName
+            binding.buyAgainFoodPrice.text = foodPrice
             val uriString = foodImage
             val uri = Uri.parse(uriString)
             Glide.with(requireContext).load(uri).into(binding.buyAgainFoodImage)
         }
-
     }
-
 }

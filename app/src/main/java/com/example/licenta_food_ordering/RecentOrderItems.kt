@@ -28,11 +28,12 @@ class RecentOrderItems : AppCompatActivity() {
         binding.backButton.setOnClickListener {
             finish()
         }
+        //lista de ob order details prin cheia ""
         val recentOrderItems=intent.getSerializableExtra("RecentBuyOrderItem") as ArrayList<OrderDetails>
         recentOrderItems?.let{ orderDetails ->
             if(orderDetails.isNotEmpty()){
                 val recentOrderItem=orderDetails[0]
-
+                //populare liste cu datele comenzii
                 allFoodNames=recentOrderItem.foodNames as ArrayList<String>
                 allFoodImages=recentOrderItem.foodImages as ArrayList<String>
                 allFoodPrices=recentOrderItem.foodPrices as ArrayList<String>
@@ -50,7 +51,7 @@ class RecentOrderItems : AppCompatActivity() {
 
     private fun setAdapter() {
         val rv=binding.recyclerViewRecentBuy
-        rv.layoutManager=LinearLayoutManager(this)
+        rv.layoutManager=LinearLayoutManager(this) //afiseaza elem in lista
         val adapter=RecentBuyAdapter(this, allFoodNames, allFoodImages, allFoodPrices, allFoodQuantities)
         rv.adapter=adapter
     }

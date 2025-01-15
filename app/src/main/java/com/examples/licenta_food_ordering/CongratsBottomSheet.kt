@@ -19,7 +19,6 @@ class CongratsBottomSheet : BottomSheetDialogFragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         binding= FragmentCongratsBottomSheetBinding.inflate(layoutInflater, container, false)
         binding.goHome.setOnClickListener{
             val intent = Intent(requireContext(), MainActivity::class.java)
