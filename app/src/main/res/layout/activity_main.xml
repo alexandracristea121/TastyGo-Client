@@ -24,7 +24,7 @@
         android:id="@+id/textView14"
         android:layout_width="349dp"
         android:layout_height="32dp"
-        android:layout_marginTop="44dp"
+        android:layout_marginTop="40dp"
         android:text="                    A journey of delicious bites!"
         android:textSize="18sp"
         android:textStyle="bold"
