@@ -1,0 +1,71 @@
+@startuml
+left to right direction
+
+actor User
+
+rectangle "User Actions" {
+  (Sign Up) as UC1
+  (Login) as UC2
+  (View Menu) as UC3
+  (Place Order) as UC4
+  (Add Items to Order) as UC5
+  (Edit Profile) as UC6
+  (View Orders) as UC7
+  (View Order History) as UC8
+  (Search Menu) as UC9
+  (Add Item to Cart) as UC10
+  (Proceed to Checkout) as UC11
+  (Choose Delivery Location) as UC12
+  (Update User Data) as UC13
+  (Save User Data) as UC14
+  (Retrieve Cart Items) as UC15
+  (Show All Menu) as UC16
+  (Filter Menu Items) as UC17
+  (Setup Search View) as UC18
+  (Random Popular Items) as UC19
+  (Retrieve and Display Popular Items) as UC20
+  (Save Food Item) as UC21
+  (Update Cart Items) as UC22
+  (Random Popular Items) as UC23
+}
+
+' User Actions
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+User --> UC11
+User --> UC12
+User --> UC13
+User --> UC14
+User --> UC15
+User --> UC16
+User --> UC17
+User --> UC18
+User --> UC19
+User --> UC20
+User --> UC21
+User --> UC22
+User --> UC23
+
+' Use Case Relationships
+
+' Correcting Include and Extend based on actual logic
+UC4 -[#green,dashed]-> UC5 : include
+UC2 -[#red,dashed]-> UC6 : extend
+UC1 --> UC2
+UC9 -[#green,dashed]-> UC3 : include
+UC10 -[#green,dashed]-> UC4 : include
+UC11 -[#green,dashed]-> UC12 : include
+UC16 -[#green,dashed]-> UC18 : include
+UC19 -[#green,dashed]-> UC20 : include
+UC20 -[#green,dashed]-> UC21 : include
+UC15 -[#green,dashed]-> UC5 : include
+UC7 -[#green,dashed]-> UC8 : include
+@enduml

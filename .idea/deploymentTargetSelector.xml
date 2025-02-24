@@ -4,17 +4,14 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-01-11T17:04:54.604471400Z">
+        <DropdownSelection timestamp="2025-02-24T21:05:27.413132Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Alexandra\.android\avd\Pixel_5_API_33.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/alexscrofan/.android/avd/Pixel_3a_API_34_extension_level_7_arm64-v8a.avd" />
             </handle>
           </Target>
         </DropdownSelection>
         <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="RestaurantMapActivity">
-        <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
   </component>

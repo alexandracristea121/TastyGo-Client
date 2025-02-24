@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.FragmentCartBinding
 import com.examples.licenta_food_ordering.PayOutActivity
 
