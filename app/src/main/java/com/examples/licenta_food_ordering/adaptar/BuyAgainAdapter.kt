@@ -15,6 +15,18 @@ class BuyAgainAdapter(
     private var requireContext: Context
 ) : RecyclerView.Adapter<BuyAgainAdapter.BuyAgainViewHolder>() {
 
+    private var itemClickListener: OnItemClickListener? = null
+
+    // Define an interface for item clicks
+    interface OnItemClickListener {
+        fun onItemClick(position: Int)
+    }
+
+    // Allow setting the listener from outside
+    fun setOnItemClickListener(listener: OnItemClickListener) {
+        itemClickListener = listener
+    }
+
     override fun onBindViewHolder(holder: BuyAgainViewHolder, position: Int) {
         val validPosition = minOf(buyAgainFoodName.size, buyAgainFoodPrice.size, buyAgainFoodImage.size)
         if (position < validPosition) {
@@ -42,6 +54,11 @@ class BuyAgainAdapter(
             val uriString = foodImage
             val uri = Uri.parse(uriString)
             Glide.with(requireContext).load(uri).into(binding.buyAgainFoodImage)
+
+            // Handle click event
+            itemView.setOnClickListener {
+                itemClickListener?.onItemClick(adapterPosition)
+            }
         }
     }
 }

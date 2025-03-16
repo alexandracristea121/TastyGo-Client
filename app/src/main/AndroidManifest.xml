@@ -24,6 +24,11 @@
             android:exported="true" />
 
         <activity
+            android:name="com.examples.licenta_food_ordering.OrderDetailsActivity"
+            android:label=""
+            android:exported="true" />
+
+        <activity
             android:name=".RecentOrderItems"
             android:exported="false" />
         <activity

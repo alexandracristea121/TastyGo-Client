@@ -64,7 +64,6 @@ class CartAdapter (private val context: Context, private val cartItems:MutableLi
                 cartFoodName.text = cartItems[position]
                 cartItemPrice.text=cartItemPrices[position]
 
-
                 val uriString=cartImages[position]
                 val uri= Uri.parse(uriString)
                 Glide.with(context).load(uri).into(cartImage)

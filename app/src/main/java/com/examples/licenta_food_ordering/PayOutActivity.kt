@@ -1,13 +1,11 @@
 package com.examples.licenta_food_ordering
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.ActivityPayOutBinding
 import com.examples.licenta_food_ordering.model.OrderDetails
 import com.google.firebase.auth.FirebaseAuth
@@ -18,12 +16,18 @@ import com.stripe.android.PaymentIntentResult
 import com.stripe.android.Stripe
 import com.stripe.android.model.CardParams
 import com.stripe.android.model.PaymentMethodCreateParams
-import com.stripe.android.model.PaymentIntent
 import com.stripe.android.model.ConfirmPaymentIntentParams
 import com.stripe.android.model.StripeIntent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class PayOutActivity : AppCompatActivity() {
 
@@ -31,7 +35,7 @@ class PayOutActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var name: String
-    private lateinit var address: String
+    private lateinit var userLocation: String
     private lateinit var phone: String
     private lateinit var totalAmount: String
     private lateinit var foodItemName: ArrayList<String>
@@ -77,10 +81,10 @@ class PayOutActivity : AppCompatActivity() {
 
         binding.placeMyOrder.setOnClickListener {
             name = binding.name.text.toString().trim()
-            address = binding.address.text.toString().trim()
+            userLocation = binding.address.text.toString().trim()
             phone = binding.phone.text.toString().trim()
 
-            if (name.isBlank() || address.isBlank() || phone.isBlank()) {
+            if (name.isBlank() || userLocation.isBlank() || phone.isBlank()) {
                 Toast.makeText(this, "Please enter all the details", Toast.LENGTH_SHORT).show()
             } else {
                 val amount = calculateTotalAmountInCents()
@@ -216,7 +220,45 @@ class PayOutActivity : AppCompatActivity() {
     private fun placeOrder() {
         userId = auth.currentUser?.uid ?: ""
         val time = System.currentTimeMillis()
-        val itemPushKey = databaseReference.child("OrderDetails").push().key
+
+        // Assuming you get a list of restaurant names from SharedPreferences or somewhere
+        val restaurantNames = SharedPrefsHelper.getRestaurantNames(this) // This should be a list
+
+        if (restaurantNames.isNotEmpty()) {
+            // List to hold the fetched locations
+            val restaurantLocations = mutableListOf<String>()
+
+            // Use coroutines to fetch all restaurant locations in parallel
+            GlobalScope.launch(Dispatchers.Main) {
+                val deferredLocations = restaurantNames.map { restaurantName ->
+                    async(Dispatchers.IO) {
+                        fetchRestaurantLocationSuspend(restaurantName) // Fetch location for each restaurant
+                    }
+                }
+
+                // Await all results
+                deferredLocations.awaitAll().forEach { location ->
+                    if (location != null) {
+                        restaurantLocations.add(location)
+                    } else {
+                        restaurantLocations.add("Location not found")
+                    }
+                }
+
+                // After fetching all locations, create the order
+                createOrder(restaurantLocations, restaurantNames)
+            }
+        } else {
+            Toast.makeText(this, "Restaurant name list is empty", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Function to create the order once locations are fetched
+    @SuppressLint("SimpleDateFormat")
+    private fun createOrder(restaurantLocations: List<String>, restaurantNames: List<String>) {
+        val itemPushKey = databaseReference.child("orders").push().key
+        val currentDate: String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
+
         val orderDetails = OrderDetails(
             userId,
             name,
@@ -224,16 +266,19 @@ class PayOutActivity : AppCompatActivity() {
             foodItemPrice,
             foodItemImage,
             foodItemQuantities,
-            address,
+            userLocation,
+            restaurantLocations.joinToString(", "),  // Combine all restaurant locations into a string
             totalAmount,
             phone,
-            time,
+            currentDate,  // Pass the formatted current date and time here as a String
             itemPushKey,
             false,
             false,
-            adminUserId
+            adminUserId,
+            restaurantNames.joinToString(", ")
         )
-        val orderReference = databaseReference.child("OrderDetails").child(itemPushKey!!)
+
+        val orderReference = databaseReference.child("orders").child(itemPushKey!!)
         orderReference.setValue(orderDetails).addOnSuccessListener {
             val bottomSheetDialog = CongratsBottomSheet()
             bottomSheetDialog.show(supportFragmentManager, "Test")
@@ -242,6 +287,48 @@ class PayOutActivity : AppCompatActivity() {
         }
             .addOnFailureListener {
                 Toast.makeText(this, "Failed to place order", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // Suspend function for fetching the restaurant location
+    private suspend fun fetchRestaurantLocationSuspend(restaurantName: String): String? {
+        return suspendCoroutine { continuation ->
+            databaseReference.child("Restaurants")
+                .orderByChild("name")
+                .equalTo(restaurantName)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    if (snapshot.exists()) {
+                        val location = snapshot.children.firstOrNull()?.child("address")?.value.toString()
+                        continuation.resume(location) // Resume with the location
+                    } else {
+                        continuation.resume(null) // Resume with null if not found
+                    }
+                }
+                .addOnFailureListener {
+                    continuation.resume(null) // Handle failure
+                }
+        }
+    }
+
+    // Function to fetch the restaurant's location from Firebase
+    private fun fetchRestaurantLocation(restaurantName: String, callback: (String?) -> Unit) {
+        // Assuming you have a 'Restaurants' node in Firebase
+        databaseReference.child("Restaurants")
+            .orderByChild("name") // Assuming the restaurant name is under the "name" field
+            .equalTo(restaurantName)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    // Fetch the address field from the matched restaurant
+                    val location = snapshot.children.firstOrNull()?.child("address")?.value.toString()
+                    callback(location) // Return the address to the callback
+                } else {
+                    callback(null) // No restaurant found
+                }
+            }
+            .addOnFailureListener {
+                callback(null) // Handle failure
             }
     }
 

@@ -80,6 +80,7 @@ dependencies {
 
     // Google Maps SDK for Android
     implementation("com.google.android.gms:play-services-maps:18.0.2") // Check for latest version
+    implementation ("com.google.maps:google-maps-services:0.2.0")         // Pentru Google Maps Directions API
     implementation("com.google.android.gms:play-services-location:18.0.0")
     implementation("com.google.android.gms:play-services-identity:18.1.0")
 

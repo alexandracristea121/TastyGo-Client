@@ -23,6 +23,7 @@ import com.examples.licenta_food_ordering.Fragment.ProfileFragment
 import com.examples.licenta_food_ordering.Fragment.SearchFragment
 import com.examples.licenta_food_ordering.adaptar.MenuAdapter
 import com.examples.licenta_food_ordering.model.MenuItem
+import com.google.android.gms.common.internal.Objects
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -77,54 +78,6 @@ class RestaurantDetailsActivity : AppCompatActivity() {
         fetchRestaurantDetails()
 
         // Set up the Bottom Navigation and handle fragment switching
-        setupBottomNavigation()
-    }
-
-    // Set up Bottom Navigation functionality
-    private fun setupBottomNavigation() {
-        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
-
-        // Hide the bottom navigation if you want it to disappear in the restaurant details page
-        bottomNavigationView.visibility = View.VISIBLE
-
-        bottomNavigationView.setOnNavigationItemSelectedListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.homeFragment -> {
-                    switchToFragment(HomeFragment()) // Manually switch to the HomeFragment
-                    true
-                }
-
-                R.id.profileFragment -> {
-                    switchToFragment(ProfileFragment()) // Switch to the ProfileFragment
-                    true
-                }
-
-                R.id.searchFragment -> {
-                    switchToFragment(SearchFragment()) // Switch to the SearchFragment
-                    true
-                }
-
-                R.id.cartFragment -> {
-                    switchToFragment(CartFragment()) // Switch to the CartFragment
-                    true
-                }
-
-                R.id.historyFragment -> {
-                    switchToFragment(HistoryFragment()) // Switch to the HistoryFragment
-                    true
-                }
-
-                else -> false
-            }
-        }
-    }
-
-    // Function to switch between fragments
-    private fun switchToFragment(fragment: Fragment) {
-        val transaction = supportFragmentManager.beginTransaction()
-        transaction.replace(R.id.fragmentContainerView, fragment)
-        transaction.addToBackStack(null)  // Optional: add fragment to back stack for back navigation
-        transaction.commit()
     }
 
     // Fetch restaurant details from Firebase
@@ -137,8 +90,14 @@ class RestaurantDetailsActivity : AppCompatActivity() {
                     nameTextView.text = restaurant.name
                     addressTextView.text = restaurant.address
 
+                    if (!restaurant.name.isNullOrEmpty()) {
+                        // Reset stored restaurant names before saving the new one
+                        SharedPrefsHelper.resetRestaurantNames(this)
+                        SharedPrefsHelper.saveRestaurantNames(this, restaurant.name)
+                    }
+
                     // Store admin user ID in SharedPreferences
-                    val adminUserId = restaurant.adminUserId // Assuming 'adminUserId' is a field in your Restaurant model
+                    val adminUserId = restaurant.adminUserId
                     if (adminUserId != null) {
                         SharedPrefsHelper.saveAdminUserId(this, adminUserId)
                     }
@@ -163,7 +122,6 @@ class RestaurantDetailsActivity : AppCompatActivity() {
             Toast.makeText(this, "Error fetching restaurant details", Toast.LENGTH_SHORT).show()
         }
     }
-
     // Fetch categories from the menu items
     private fun fetchCategories() {
         val menuRef = restaurantsRef.child(restaurantId).child("menu")
@@ -178,7 +136,7 @@ class RestaurantDetailsActivity : AppCompatActivity() {
             }
 
             categories = uniqueCategories.toMutableList()
-            categories.add(0, "Any Category") // Add "All" option for displaying all menu items
+            categories.add(0, "Categories") // Add "All" option for displaying all menu items
 
             setupCategoryFilter()
         }.addOnFailureListener {
@@ -200,7 +158,7 @@ class RestaurantDetailsActivity : AppCompatActivity() {
                 id: Long
             ) {
                 val selectedCategory = categories[position]
-                if (selectedCategory == "Any Category") {
+                if (selectedCategory == "Categories") {
                     fetchMenuItems() // Fetch all items if "All" is selected
                 } else {
                     fetchMenuItemsByCategory(selectedCategory) // Fetch items for the selected category

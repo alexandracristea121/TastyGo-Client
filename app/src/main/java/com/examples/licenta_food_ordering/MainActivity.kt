@@ -2,7 +2,6 @@ package com.examples.licenta_food_ordering
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -49,23 +48,42 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        // Set default fragment when the app is first launched
         if (savedInstanceState == null) {
             bottomNavigationView.selectedItemId = R.id.homeFragment
         }
 
+        // Handle click for bottom sheet
         binding.imageView5.setOnClickListener {
             val bottomSheetDialog = Notification_Bottom_Fragment()
             bottomSheetDialog.show(supportFragmentManager, "Test")
         }
 
+        // Handle window insets to prevent UI overlapping
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
             v.setPadding(0, 0, 0, 0)
-
             bottomNavigationView.setPadding(0, 0, 0, 0)
 
             insets
         }
+    }
+
+    // Handle returning from RestaurantDetailsActivity (optional)
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK) {
+            val navHostFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainerView) as NavHostFragment
+            val navController = navHostFragment.navController
+            navController.navigate(R.id.homeFragment) // Navigate back to home or the appropriate fragment
+        }
+    }
+
+    // Handle back button press if needed
+    override fun onBackPressed() {
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainerView) as NavHostFragment
+        val navController = navHostFragment.navController
+        super.onBackPressed()
     }
 }
