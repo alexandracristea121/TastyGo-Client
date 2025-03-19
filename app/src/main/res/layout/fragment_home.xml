@@ -42,12 +42,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Restaurants"
+        android:textColor="@color/black"
         android:textSize="40sp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/PopulerRecyclerView"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cardView2"
-        app:layout_constraintHorizontal_bias="0.5" />
+        app:layout_constraintTop_toBottomOf="@+id/cardView2" />
 
     <!-- RecyclerView for Popular Restaurants -->
     <androidx.recyclerview.widget.RecyclerView
