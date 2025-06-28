@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering.service.courier
+package com.examples.licenta_food_ordering.service.courier.map
 
 import android.app.Activity
 import android.content.Context
@@ -16,20 +16,18 @@ import java.io.IOException
 object RouteManager {
 
     private const val TAG = "RouteManager"
-    const val DIRECTIONS_API_KEY = "AIzaSyCHP4wYR_Qe0d1sasOGQ-vlmCncYK2F4KQ"  // Your API key is here
+    const val DIRECTIONS_API_KEY = "AIzaSyCHP4wYR_Qe0d1sasOGQ-vlmCncYK2F4KQ"
 
-    private var polyline: Polyline? = null // Store the polyline reference
-    private var isRouteVisible = false // Track the visibility state of the route
+    private var polyline: Polyline? = null
+    private var isRouteVisible = false
 
     fun toggleRoute(context: Context, map: GoogleMap, points: List<LatLng>) {
         if (points.size < 2) return
 
         if (isRouteVisible) {
-            // Hide the route if it's already visible
             polyline?.remove()
             isRouteVisible = false
         } else {
-            // Show the route if it's hidden
             val origin = "${points.first().latitude},${points.first().longitude}"
             val destination = "${points.last().latitude},${points.last().longitude}"
 
@@ -38,7 +36,6 @@ object RouteManager {
             val url = buildDirectionsUrl(origin, destination, waypoints)
 
             fetchRoute(url) { polylinePoints ->
-                // Ensure that we update the map on the main thread
                 (context as? Activity)?.runOnUiThread {
                     polyline = map.addPolyline(
                         PolylineOptions()
@@ -71,7 +68,6 @@ object RouteManager {
                 response.body?.string()?.let { json ->
                     val polylinePoints = parsePolylinePoints(json)
 
-                    // Make sure to run the map operation on the main thread
                     callback(polylinePoints)
                 }
             }

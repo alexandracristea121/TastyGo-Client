@@ -1,6 +1,6 @@
-package com.examples.licenta_food_ordering.model
+package com.examples.licenta_food_ordering.model.cart
 
-data class CartItems(
+data class CartItem(
     var foodName: String?=null,
     var foodPrice: String?=null,
     var foodDescription: String?=null,

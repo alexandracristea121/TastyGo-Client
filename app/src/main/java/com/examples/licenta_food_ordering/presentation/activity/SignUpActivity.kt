@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.examples.licenta_food_ordering.presentation.activity
 
 import android.app.Activity
@@ -21,7 +23,8 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 
-class SignActivity : AppCompatActivity() {
+@Suppress("NAME_SHADOWING")
+class SignUpActivity : AppCompatActivity() {
 
     private lateinit var email: String
     private lateinit var password: String
@@ -40,7 +43,6 @@ class SignActivity : AppCompatActivity() {
 
         window.statusBarColor = ContextCompat.getColor(this, R.color.white)
 
-        //creeaza optiunile necesare pentru autentificarea cu google
         val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -87,21 +89,18 @@ class SignActivity : AppCompatActivity() {
         }
     }
 
-    // Launcher pt a porni Google Sign-In
     private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         Log.d("SignActivity", "Result Code: ${result.resultCode}")
         if (result.resultCode == Activity.RESULT_OK) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             if (task.isSuccessful) {
                 val account = task.result
-                //creez un credential firebase cu id tokenul de la contul google
                 val credential = GoogleAuthProvider.getCredential(account?.idToken, null)
                 auth.signInWithCredential(credential).addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         Log.d("SignActivity", "Google Sign-In successful.")
                         Toast.makeText(this, "Sign in successful", Toast.LENGTH_SHORT).show()
 
-                        // extrag datele din contul google
                         val username = account?.displayName ?: "User"
                         val email = account?.email ?: "No email"
                         saveUserData(username, email)
@@ -122,7 +121,6 @@ class SignActivity : AppCompatActivity() {
         }
     }
 
-    // creare cont cu email and password
     private fun createAccount(email: String, password: String) {
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -138,10 +136,9 @@ class SignActivity : AppCompatActivity() {
     }
 
     private fun saveUserData(username: String, email: String, password: String = "N/A") {
-        val user = UserModel(username, email, password, null, null) // Include all fields in UserModel
+        val user = UserModel(username, email, password, null, null)
         val userId = FirebaseAuth.getInstance().currentUser!!.uid
 
-        // salvez user in baza de date
         database.child("user").child(userId).setValue(user)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {

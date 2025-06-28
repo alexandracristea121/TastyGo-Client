@@ -26,7 +26,7 @@ def fetch_data_from_firebase():
     for courier_id, courier_info in data.items():
         courier_data.append({
             'id': courier_id,
-            'minDistance': courier_info.get('minDistance', 0),
+            'minDistance': courier_info.get('minDistance', 0.0),
             'trafficEstimationInMinutes': courier_info.get('trafficEstimationInMinutes', 0),
             'courierLatitude': courier_info.get('latitude', 0.0),
             'courierLongitude': courier_info.get('longitude', 0.0),

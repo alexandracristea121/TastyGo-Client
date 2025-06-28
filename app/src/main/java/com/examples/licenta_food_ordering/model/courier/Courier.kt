@@ -9,15 +9,15 @@ data class Courier(
     val restaurantLongitude: Double = 0.0,
     val userLatitude: Double = 0.0,
     val userLongitude: Double = 0.0,
-    val userUid: String = "",  // UID-ul utilizatorului care a comandat
-    val status: CourierStatus = CourierStatus.AVAILABLE,  // Statusul curierului
-    val lastUpdate: Long = System.currentTimeMillis(),  // Timpul ultimei actualizări
-    var minDistance: Double = 0.0,
-    var trafficEstimationInMinutes: Int = 0
+    val userUid: String = "",
+    val orderId: String = "",
+    val status: CourierStatus = CourierStatus.AVAILABLE,
+    val lastUpdate: Long = System.currentTimeMillis(),
+    val minDistanceRaw: Double = 0.0,
+    val trafficEstimationInMinutes: Int = 0
 )
 
 enum class CourierStatus {
-    AVAILABLE,   // Disponibil
-    DELIVERING,  // În livrare
-    OFFLINE      // Offline
+    AVAILABLE,
+    DELIVERING
 }

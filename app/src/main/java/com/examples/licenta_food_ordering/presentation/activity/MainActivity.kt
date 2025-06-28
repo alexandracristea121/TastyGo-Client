@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering
+package com.examples.licenta_food_ordering.presentation.activity
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
@@ -9,7 +9,6 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.ActivityMainBinding
-import com.examples.licenta_food_ordering.Fragment.HomeFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
@@ -49,29 +48,15 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Set default fragment when the app is first launched
         if (savedInstanceState == null) {
             bottomNavigationView.selectedItemId = R.id.homeFragment
         }
 
-        // Handle window insets to prevent UI overlapping
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(0, 0, 0, 0)
             bottomNavigationView.setPadding(0, 0, 0, 0)
             insets
         }
-
-        // Directly trigger chatbot in HomeFragment
-        triggerChatbotInHomeFragment()
-    }
-
-    // Programmatically trigger chatbot in HomeFragment
-    private fun triggerChatbotInHomeFragment() {
-        val navHostFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainerView) as? NavHostFragment
-        val homeFragment = navHostFragment?.childFragmentManager?.fragments
-            ?.firstOrNull { it is HomeFragment } as? HomeFragment
-
-        homeFragment?.triggerChatbotClick()
     }
 }

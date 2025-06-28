@@ -9,12 +9,8 @@ import com.example.licenta_food_ordering.databinding.FragmentCongratsBottomSheet
 import com.examples.licenta_food_ordering.presentation.activity.MainActivity
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
-class CongratsBottomFragment : BottomSheetDialogFragment() {
+class OrderSuccessBottomSheet : BottomSheetDialogFragment() {
     private lateinit var binding  : FragmentCongratsBottomSheetBinding
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

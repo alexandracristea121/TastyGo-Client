@@ -1,19 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:title="Profile"
+    <item
         android:id="@+id/profileFragment"
-        android:icon="@drawable/profile"/>
-    <item android:title="Search"
+        android:icon="@drawable/ic_profile"
+        android:title="Profil" />
+    <item
         android:id="@+id/searchFragment"
-        android:icon="@drawable/search"/>
-    <item android:title="Home"
+        android:icon="@drawable/ic_search"
+        android:title="Cautare" />
+    <item
         android:id="@+id/homeFragment"
-        android:icon="@drawable/home"/>
-    <item android:title="Cart"
+        android:icon="@drawable/ic_home"
+        android:title="Acasa" />
+    <item
         android:id="@+id/cartFragment"
-        android:icon="@drawable/cart"/>
-    <item android:title="History"
+        android:icon="@drawable/ic_cart"
+        android:title="Cos" />
+    <item
         android:id="@+id/historyFragment"
-        android:icon="@drawable/history"/>
+        android:icon="@drawable/ic_history"
+        android:title="Istoric" />
 </menu>

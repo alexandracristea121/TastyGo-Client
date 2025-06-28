@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering
+package com.examples.licenta_food_ordering.model.chat
 
 data class Message(
     val content: String,

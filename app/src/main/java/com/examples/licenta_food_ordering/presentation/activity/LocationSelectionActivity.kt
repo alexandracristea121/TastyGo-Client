@@ -9,7 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.ActivityChooseLocationBinding
 
-class ChooseLocationActivity : AppCompatActivity() {
+class LocationSelectionActivity : AppCompatActivity() {
     private val binding: ActivityChooseLocationBinding by lazy{
         ActivityChooseLocationBinding.inflate(layoutInflater)
     }

@@ -2,45 +2,56 @@ package com.examples.licenta_food_ordering.presentation.activity
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.location.Geocoder
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.licenta_food_ordering.databinding.ActivityPayOutBinding
-import com.examples.licenta_food_ordering.presentation.ui.CongratsBottomFragment
-import com.examples.licenta_food_ordering.utils.PaymentRequest
-import com.examples.licenta_food_ordering.utils.RetrofitClient
 import com.examples.licenta_food_ordering.model.order.OrderDetails
-import com.examples.licenta_food_ordering.service.courier.DistanceCalculationUtility
-import com.examples.licenta_food_ordering.utils.SharedPrefsHelper
+import com.examples.licenta_food_ordering.presentation.ui.OrderSuccessBottomSheet
+import com.examples.licenta_food_ordering.service.courier.map.DistanceCalculationUtility
+import com.examples.licenta_food_ordering.utils.ConfigUtils
+import com.examples.licenta_food_ordering.utils.network.RetrofitClient
+import com.examples.licenta_food_ordering.utils.payment.PaymentRequest
+import com.examples.licenta_food_ordering.utils.preferences.SharedPrefsHelper
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.stripe.android.ApiResultCallback
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.PaymentIntentResult
 import com.stripe.android.Stripe
 import com.stripe.android.model.CardParams
-import com.stripe.android.model.PaymentMethodCreateParams
 import com.stripe.android.model.ConfirmPaymentIntentParams
+import com.stripe.android.model.PaymentMethodCreateParams
 import com.stripe.android.model.StripeIntent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class PayOutActivity : AppCompatActivity() {
+class PaymentActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityPayOutBinding
 
     private lateinit var auth: FirebaseAuth
     private lateinit var name: String
     private lateinit var userLocation: String
+    private lateinit var restaurantLocation: String
     private lateinit var phone: String
     private lateinit var totalAmount: String
     private lateinit var foodItemName: ArrayList<String>
@@ -52,11 +63,7 @@ class PayOutActivity : AppCompatActivity() {
     private lateinit var databaseReference: DatabaseReference
     private lateinit var userId: String
     private lateinit var distanceCalculationUtility: DistanceCalculationUtility
-
-    private val stripe: Stripe by lazy {
-        Stripe(applicationContext, "pk_test_51O5AEKErOmyaHsbbQATChHY8CoF7Gb7HHcm6k5765EfnSgTnCpsSLs5CRuEvZ0VG2wrbwOqgETTB7K7pITVsDq5c00xTuRRn6y") // Your Stripe publishable key
-    }
-
+    private lateinit var stripe: Stripe
     private lateinit var adminUserId: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +79,14 @@ class PayOutActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         databaseReference = FirebaseDatabase.getInstance().getReference()
 
-        PaymentConfiguration.init(applicationContext, "pk_test_51O5AEKErOmyaHsbbQATChHY8CoF7Gb7HHcm6k5765EfnSgTnCpsSLs5CRuEvZ0VG2wrbwOqgETTB7K7pITVsDq5c00xTuRRn6y")
+        ConfigUtils.initialize(applicationContext)
+
+        stripe = Stripe(
+            applicationContext,
+            ConfigUtils.getStripePublishableKey()
+        )
+
+        PaymentConfiguration.init(applicationContext, ConfigUtils.getStripePublishableKey())
 
         setUserData()
 
@@ -84,7 +98,12 @@ class PayOutActivity : AppCompatActivity() {
         foodItemDescriptions = intent.getStringArrayListExtra("FoodItemDescription") ?: arrayListOf()
         foodItemIngredients = intent.getStringArrayListExtra("FoodItemIngredients") ?: arrayListOf()
 
-        totalAmount = calculateTotalAmount().toString() + " $"
+        val restaurantName = SharedPrefsHelper.getRestaurantNames(this).firstOrNull() ?: "Unknown Restaurant Location"
+        fetchRestaurantLocation(restaurantName) { location ->
+            restaurantLocation = location ?: "Unknown Restaurant Location"
+        }
+
+        totalAmount = calculateTotalAmount().toString() + " RON"
         binding.totalAmount.setText(totalAmount)
 
         binding.backButton.setOnClickListener {
@@ -114,15 +133,23 @@ class PayOutActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val clientSecret = response.body()?.clientSecret
                     if (clientSecret != null) {
-                        confirmPayment(clientSecret)
+                        withContext(Dispatchers.Main) {
+                            confirmPayment(clientSecret)
+                        }
                     } else {
-                        Toast.makeText(this@PayOutActivity, "Failed to get client secret", Toast.LENGTH_SHORT).show()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@PaymentActivity, "Failed to get client secret", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } else {
-                    Toast.makeText(this@PayOutActivity, "Failed to create payment intent", Toast.LENGTH_SHORT).show()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@PaymentActivity, "Failed to create payment intent", Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@PayOutActivity, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@PaymentActivity, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -140,66 +167,52 @@ class PayOutActivity : AppCompatActivity() {
         stripe.confirmPayment(this, confirmParams)
     }
 
-    // Calculates total amount in dollars (returns Int)
     private fun calculateTotalAmount(): Int {
         var totalAmount = 0
         for (i in foodItemPrice.indices) {
-            var price = foodItemPrice[i]
+            val price = foodItemPrice[i]
 
-            // Remove currency symbols from both ends (if they exist)
             val priceWithoutCurrency = when {
-                price.startsWith("$") -> price.drop(1)  // Remove "$" from the beginning
-                price.startsWith("€") -> price.drop(1)  // Remove "€" from the beginning
-                price.endsWith("$") -> price.dropLast(1)  // Remove "$" from the end
-                price.endsWith("€") -> price.dropLast(1)  // Remove "€" from the end
-                else -> price  // No symbol, use as is
+                price.startsWith("$") -> price.drop(1)
+                price.startsWith("€") -> price.drop(1)
+                price.endsWith("$") -> price.dropLast(1)
+                price.endsWith("€") -> price.dropLast(1)
+                else -> price
             }
 
-            // Replace any commas and convert to Double (to handle cases like "37,50")
             val normalizedPrice = priceWithoutCurrency.replace(",", ".").toDouble()
-
-            // Convert the price to an integer (ignores decimals)
             val priceIntValue = normalizedPrice.toInt()
-
-            // Get the quantity for the item
             val quantity = foodItemQuantities[i]
-
-            // Add the item price (with quantity) to the total amount
             totalAmount += priceIntValue * quantity
         }
+        val deliveryFee = 10
+        totalAmount += deliveryFee
         return totalAmount
     }
 
-    // Calculates total amount in cents (returns Long)
     private fun calculateTotalAmountInCents(): Long {
         var totalAmount = 0L
         for (i in foodItemPrice.indices) {
-            var price = foodItemPrice[i]
+            val price = foodItemPrice[i]
 
-            // Handle prices with currency symbols and commas
             val priceInCents = when {
                 price.startsWith("$") -> {
-                    // Remove "$" from the beginning, handle commas, convert to cents
                     val normalizedPrice = price.drop(1).replace(",", ".").toDouble()
                     (normalizedPrice * 100).toLong()
                 }
                 price.startsWith("€") -> {
-                    // Remove "€" from the beginning, handle commas, convert to cents
                     val normalizedPrice = price.drop(1).replace(",", ".").toDouble()
                     (normalizedPrice * 100).toLong()
                 }
                 price.endsWith("$") -> {
-                    // Remove "$" from the end, handle commas, convert to cents
                     val normalizedPrice = price.dropLast(1).replace(",", ".").toDouble()
                     (normalizedPrice * 100).toLong()
                 }
                 price.endsWith("€") -> {
-                    // Remove "€" from the end, handle commas, convert to cents
                     val normalizedPrice = price.dropLast(1).replace(",", ".").toDouble()
                     (normalizedPrice * 100).toLong()
                 }
                 else -> {
-                    // No currency symbol, just parse the number, handle commas, and convert to cents
                     val normalizedPrice = if (price.contains(",")) {
                         price.replace(",", ".").toDouble()
                     } else {
@@ -212,6 +225,8 @@ class PayOutActivity : AppCompatActivity() {
             val quantity = foodItemQuantities[i]
             totalAmount += priceInCents * quantity
         }
+        val deliveryFeeInCents = 1000L
+        totalAmount += deliveryFeeInCents
         return totalAmount
     }
 
@@ -239,6 +254,7 @@ class PayOutActivity : AppCompatActivity() {
         }
     }
 
+    @Deprecated("This method has been deprecated in favor of using the Activity Result API\n      which brings increased type safety via an {@link ActivityResultContract} and the prebuilt\n      contracts for common intents available in\n      {@link androidx.activity.result.contract.ActivityResultContracts}, provides hooks for\n      testing, and allow receiving results in separate, testable classes independent from your\n      activity. Use\n      {@link #registerForActivityResult(ActivityResultContract, ActivityResultCallback)}\n      with the appropriate {@link ActivityResultContract} and handling the result in the\n      {@link ActivityResultCallback#onActivityResult(Object) callback}.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         stripe.onPaymentResult(requestCode, data, object : ApiResultCallback<PaymentIntentResult> {
@@ -246,132 +262,187 @@ class PayOutActivity : AppCompatActivity() {
                 result.intent.status?.let { status ->
                     when (status) {
                         StripeIntent.Status.Succeeded -> {
-                            Toast.makeText(this@PayOutActivity, "Payment successful", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@PaymentActivity, "Payment successful", Toast.LENGTH_SHORT).show()
                             placeOrder()
                         }
                         StripeIntent.Status.RequiresPaymentMethod -> {
-                            Toast.makeText(this@PayOutActivity, "Payment failed", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@PaymentActivity, "Payment failed", Toast.LENGTH_SHORT).show()
                         }
                         else -> {
-                            Toast.makeText(this@PayOutActivity, "Payment status unknown", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@PaymentActivity, "Payment status unknown", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } ?: run {
-                    Toast.makeText(this@PayOutActivity, "Payment status is null", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PaymentActivity, "Payment status is null", Toast.LENGTH_SHORT).show()
                 }
             }
 
             override fun onError(e: Exception) {
-                Toast.makeText(this@PayOutActivity, "Payment failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PaymentActivity, "Payment failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     private fun placeOrder() {
-        userId = auth.currentUser?.uid ?: ""
-        val time = System.currentTimeMillis()
-
-        // Assuming you get a list of restaurant names from SharedPreferences or somewhere
         val restaurantNames = SharedPrefsHelper.getRestaurantNames(this)
-            .filter { it != "Restaurant Name" }
 
         if (restaurantNames.isNotEmpty()) {
-            // List to hold the fetched locations
-            val restaurantLocations = mutableListOf<String>()
-
-            // Use coroutines to fetch all restaurant locations in parallel
             GlobalScope.launch(Dispatchers.Main) {
-                val deferredLocations = restaurantNames.map { restaurantName ->
-                    async(Dispatchers.IO) {
-                        fetchRestaurantLocationSuspend(restaurantName) // Fetch location for each restaurant
-                    }
+                val deferredLocations = restaurantNames.map { async { 
+                    val coordinates = fetchRestaurantCoordinates(it)
+                    "${coordinates.first},${coordinates.second}"
+                } }
+                val restaurantLocations = deferredLocations.awaitAll().filterNotNull()
+                if (restaurantLocations.isNotEmpty()) {
+                    assignCourierAndCalculateTime(
+                        restaurantAddress = restaurantLocations.first(),
+                        userAddress = userLocation
+                    )
+                } else {
+                    Toast.makeText(this@PaymentActivity, "Restaurant locations not found", Toast.LENGTH_SHORT).show()
                 }
-
-                // Await all results
-                deferredLocations.awaitAll().forEach { location ->
-                    if (location != null) {
-                        restaurantLocations.add(location)
-                    } else {
-                        restaurantLocations.add("Location not found")
-                    }
-                }
-
-                // After fetching all locations, create the order
-                createOrder(restaurantLocations, restaurantNames)
             }
         } else {
             Toast.makeText(this, "Restaurant name list is empty", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Function to create the order once locations are fetched
-    @SuppressLint("SimpleDateFormat")
-    private fun createOrder(restaurantLocations: List<String>, restaurantNames: List<String>) {
-        val itemPushKey = databaseReference.child("orders").push().key
-        val currentDate: String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
+    private fun assignCourierAndCalculateTime(restaurantAddress: String, userAddress: String) {
+        databaseReference.child("couriers")
+            .orderByChild("status").equalTo("AVAILABLE")
+            .limitToFirst(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    val courierSnapshot = snapshot.children.first()
+                    val courierId = courierSnapshot.key
+                    val latitudeStr = courierSnapshot.child("latitude").getValue(Double::class.java)
+                    val longitudeStr = courierSnapshot.child("longitude").getValue(Double::class.java)
 
-        // Convert userLocation string to latitude and longitude
-        val coordinates = distanceCalculationUtility.getCoordinatesFromAddress(userLocation);
-        val userLocationLat = coordinates.latitude.toString();
-        val userLocationLng = coordinates.longitude.toString();
-
-        val orderDetails = OrderDetails(
-            userId,
-            name,
-            foodItemName,
-            foodItemPrice,
-            foodItemImage,
-            foodItemQuantities,
-            foodItemDescriptions,
-            foodItemIngredients,
-            userLocation,
-            userLocationLat,
-            userLocationLng,
-            restaurantLocations.joinToString(", "),  // Combine all restaurant locations into a string
-            totalAmount,
-            phone,
-            currentDate,  // Pass the formatted current date and time here as a String
-            itemPushKey,
-            false,
-            false,
-            adminUserId,
-            restaurantNames.joinToString(", ")
-        )
-//        val orderDetails = OrderDetails(
-//            userId,
-//            name,
-//            foodItemName,
-//            foodItemPrice,
-//            foodItemImage,
-//            foodItemQuantities,
-//            userLocation,
-//            userLocationLat,
-//            userLocationLng,
-//            restaurantLocations.joinToString(", "),  // Combine all restaurant locations into a string
-//            totalAmount,
-//            phone,
-//            currentDate,  // Pass the formatted current date and time here as a String
-//            itemPushKey,
-//            false,
-//            false,
-//            adminUserId,
-//            restaurantNames.joinToString(", ")
-//        )
-
-        val orderReference = databaseReference.child("orders").child(itemPushKey!!)
-        orderReference.setValue(orderDetails).addOnSuccessListener {
-            val bottomSheetDialog = CongratsBottomFragment()
-            bottomSheetDialog.show(supportFragmentManager, "Test")
-            removeItemFromCart()
-            addOrderToHistory(orderDetails)
-        }
+                    if (latitudeStr != null && longitudeStr != null) {
+                        distanceCalculationUtility.getEstimatedDeliveryTime(
+                            restaurantAddress,
+                            userAddress
+                        ) { estimatedTime ->
+                            if (estimatedTime != null) {
+                                if (courierId != null) {
+                                    createOrderWithCourier(courierId, estimatedTime)
+                                } else {
+                                    runOnUiThread {
+                                        Toast.makeText(
+                                            this@PaymentActivity,
+                                            "Failed to get courier ID",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            } else {
+                                runOnUiThread {
+                                    Toast.makeText(
+                                        this@PaymentActivity,
+                                        "Failed to calculate delivery time",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                    } else {
+                        Toast.makeText(this, "Courier location not found", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(this, "No available courier found", Toast.LENGTH_SHORT).show()
+                }
+            }
             .addOnFailureListener {
-                Toast.makeText(this, "Failed to place order", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Failed to query couriers", Toast.LENGTH_SHORT).show()
             }
     }
 
-    // Suspend function for fetching the restaurant location
-    private suspend fun fetchRestaurantLocationSuspend(restaurantName: String): String? {
+    @SuppressLint("SimpleDateFormat")
+    private fun createOrderWithCourier(courierId: String, estimatedTime: String) {
+        lifecycleScope.launch {
+            val itemPushKey = databaseReference.child("orders").push().key
+            val currentDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
+
+            val currentUser = auth.currentUser
+            userId = currentUser?.uid ?: "Unknown User ID"
+            
+            val userCoordinates = suspendCoroutine<Pair<Double, Double>> { continuation ->
+                databaseReference.child("user").child(userId)
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        val userAddress = snapshot.child("address").getValue(String::class.java)
+                        if (userAddress != null) {
+                            val geocoder = Geocoder(this@PaymentActivity, Locale.getDefault())
+                            try {
+                                val addresses = geocoder.getFromLocationName(userAddress, 1)
+                                if (!addresses.isNullOrEmpty()) {
+                                    val location = addresses[0]
+                                    continuation.resume(Pair(location.latitude, location.longitude))
+                                } else {
+                                    continuation.resume(Pair(0.0, 0.0))
+                                }
+                            } catch (e: Exception) {
+                                continuation.resume(Pair(0.0, 0.0))
+                            }
+                        } else {
+                            continuation.resume(Pair(0.0, 0.0))
+                        }
+                    }
+                    .addOnFailureListener {
+                        continuation.resume(Pair(0.0, 0.0))
+                    }
+            }
+
+            val restaurantName = SharedPrefsHelper.getRestaurantNames(this@PaymentActivity).firstOrNull()
+            val restaurantCoordinates = if (restaurantName != null) {
+                fetchRestaurantCoordinates(restaurantName)
+            } else {
+                Pair(0.0, 0.0)
+            }
+
+            val orderDetails = OrderDetails(
+                userId,
+                name,
+                foodItemName,
+                foodItemPrice,
+                foodItemImage,
+                foodItemQuantities,
+                foodItemDescriptions,
+                foodItemIngredients,
+                userLocation,
+                userCoordinates.first.toString(),
+                userCoordinates.second.toString(),
+                "${restaurantCoordinates.first},${restaurantCoordinates.second}",
+                totalAmount,
+                phone,
+                currentDate,
+                itemPushKey,
+                orderAccepted = false,
+                paymentReceived = false,
+                adminUserId = adminUserId,
+                restaurantName = restaurantName ?: "Unknown Restaurant",
+                courierId = courierId,
+                estimatedDeliveryTime = estimatedTime
+            )
+
+            databaseReference.child("orders").child(itemPushKey!!).setValue(orderDetails)
+                .addOnSuccessListener {
+                    databaseReference.child("couriers").child(courierId).child("status").setValue("DELIVERING")
+                    databaseReference.child("couriers").child(courierId).child("orderId").setValue(itemPushKey)
+                    val bottomSheetDialog = OrderSuccessBottomSheet()
+                    bottomSheetDialog.show(supportFragmentManager, "Test")
+                    removeItemFromCart()
+                    addOrderToHistory(orderDetails)
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this@PaymentActivity, "Failed to place order", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    private suspend fun fetchRestaurantCoordinates(restaurantName: String): Pair<Double, Double> {
         return suspendCoroutine { continuation ->
             databaseReference.child("Restaurants")
                 .orderByChild("name")
@@ -379,36 +450,35 @@ class PayOutActivity : AppCompatActivity() {
                 .get()
                 .addOnSuccessListener { snapshot ->
                     if (snapshot.exists()) {
-                        val location = snapshot.children.firstOrNull()?.child("address")?.value.toString()
-                        continuation.resume(location) // Resume with the location
+                        val restaurant = snapshot.children.firstOrNull()
+                        val latitude = restaurant?.child("latitude")?.getValue(Double::class.java) ?: 0.0
+                        val longitude = restaurant?.child("longitude")?.getValue(Double::class.java) ?: 0.0
+                        continuation.resume(Pair(latitude, longitude))
                     } else {
-                        continuation.resume(null) // Resume with null if not found
+                        continuation.resume(Pair(0.0, 0.0))
                     }
                 }
                 .addOnFailureListener {
-                    continuation.resume(null) // Handle failure
+                    continuation.resume(Pair(0.0, 0.0))
                 }
         }
     }
 
-    // Function to fetch the restaurant's location from Firebase
     private fun fetchRestaurantLocation(restaurantName: String, callback: (String?) -> Unit) {
-        // Assuming you have a 'Restaurants' node in Firebase
         databaseReference.child("Restaurants")
-            .orderByChild("name") // Assuming the restaurant name is under the "name" field
+            .orderByChild("name")
             .equalTo(restaurantName)
             .get()
             .addOnSuccessListener { snapshot ->
                 if (snapshot.exists()) {
-                    // Fetch the address field from the matched restaurant
                     val location = snapshot.children.firstOrNull()?.child("address")?.value.toString()
-                    callback(location) // Return the address to the callback
+                    callback(location)
                 } else {
-                    callback(null) // No restaurant found
+                    callback(null)
                 }
             }
             .addOnFailureListener {
-                callback(null) // Handle failure
+                callback(null)
             }
     }
 

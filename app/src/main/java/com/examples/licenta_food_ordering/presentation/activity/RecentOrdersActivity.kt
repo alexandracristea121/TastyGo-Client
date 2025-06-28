@@ -11,7 +11,7 @@ import com.example.licenta_food_ordering.databinding.ActivityRecentOrderItemsBin
 import com.examples.licenta_food_ordering.adapter.RecentOrdersAdapter
 import com.examples.licenta_food_ordering.model.order.OrderDetails
 
-class RecentOrderedItemsActivity : AppCompatActivity() {
+class RecentOrdersActivity : AppCompatActivity() {
 
     private  val  binding : ActivityRecentOrderItemsBinding by lazy {
         ActivityRecentOrderItemsBinding.inflate(layoutInflater)
@@ -29,12 +29,10 @@ class RecentOrderedItemsActivity : AppCompatActivity() {
         binding.backButton.setOnClickListener {
             finish()
         }
-        //lista de ob order details prin cheia ""
         val recentOrderItems=intent.getSerializableExtra("RecentBuyOrderItem") as ArrayList<OrderDetails>
         recentOrderItems?.let{ orderDetails ->
             if(orderDetails.isNotEmpty()){
                 val recentOrderItem=orderDetails[0]
-                //populare liste cu datele comenzii
                 allFoodNames=recentOrderItem.foodNames as ArrayList<String>
                 allFoodImages=recentOrderItem.foodImages as ArrayList<String>
                 allFoodPrices=recentOrderItem.foodPrices as ArrayList<String>

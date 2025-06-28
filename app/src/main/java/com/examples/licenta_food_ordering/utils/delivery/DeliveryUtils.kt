@@ -1,10 +1,9 @@
-package com.examples.licenta_food_ordering.utils
+package com.examples.licenta_food_ordering.utils.delivery
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import okhttp3.*
 import com.google.gson.Gson
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import java.io.IOException
 
@@ -14,7 +13,6 @@ object DeliveryUtils {
     data class Element(val duration: Duration)
     data class Duration(val text: String)
 
-    // API key
     private const val API_KEY =
         "AIzaSyBgUEkRTXHL_1Z7zK8bPFoy9QswouPd27A"
 
@@ -25,6 +23,10 @@ object DeliveryUtils {
         restaurantLng: Double,
         callback: (String) -> Unit
     ) {
+        // Mock implementation for testing
+//        callback("30 mins")
+
+        // TODO: uncomment when doing demo
         val client = OkHttpClient()
         val origins = "$userLat,$userLng"
         val destinations = "$restaurantLat,$restaurantLng"
@@ -53,30 +55,27 @@ object DeliveryUtils {
         })
     }
 
-    // Function to convert an address to coordinates using Google Maps Geocoding API
     fun getUserLocationCoordinates(callback: (Double, Double) -> Unit) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId == null) {
-            callback(0.0, 0.0) // If no user is logged in, return (0.0, 0.0)
+            callback(0.0, 0.0)
             return
         }
 
-        // Reference to the "users" table in Firebase Realtime Database
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUserId)
+        val userRef = FirebaseDatabase.getInstance().getReference("user").child(currentUserId)
 
-        // Get user location from Firebase
         userRef.child("userLocation").get().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val userLocation = task.result?.getValue(String::class.java)
 
                 if (!userLocation.isNullOrEmpty()) {
-                    // Call your existing method to get coordinates based on the user location
-                    getCoordinatesFromAddress(userLocation, callback)
+                    // Mock coordinates for testing
+                    callback(44.4268, 26.1025) // Example coordinates for Bucharest
                 } else {
-                    callback(0.0, 0.0) // Return (0.0, 0.0) if location is not available
+                    callback(0.0, 0.0)
                 }
             } else {
-                callback(0.0, 0.0) // Return (0.0, 0.0) in case of an error
+                callback(0.0, 0.0)
             }
         }
     }
@@ -85,6 +84,9 @@ object DeliveryUtils {
         address: String,
         callback: (Double, Double) -> Unit
     ) {
+        // Mock coordinates for testing
+//        callback(44.4268, 26.1025) // Example coordinates for Bucharest
+        
         val client = OkHttpClient()
         val url = "https://maps.googleapis.com/maps/api/geocode/json?address=${address.replace(" ", "+")}&key=$API_KEY"
 

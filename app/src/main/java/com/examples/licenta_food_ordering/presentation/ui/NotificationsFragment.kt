@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering.Fragment
+package com.examples.licenta_food_ordering.presentation.ui
 
 import android.os.Bundle
 import android.view.View
@@ -14,15 +14,8 @@ class NotificationsFragment : Fragment(R.layout.fragment_notifications) {
         val foodNames = arguments?.getStringArrayList("foodNames") ?: listOf("No items")
         val estimatedDeliveryTime = arguments?.getString("estimatedDeliveryTime") ?: "Unknown"
 
-        val details = """
-        Restaurant: $restaurantName
-        Food Items:
-        ${foodNames.joinToString("\n- ", prefix = "- ")}
-        Estimated Delivery Time: $estimatedDeliveryTime
-    """.trimIndent()
-        // also add the distance using the DistanceUtils class
-
-
-        view.findViewById<TextView>(R.id.notificationDetails).text = details
+        view.findViewById<TextView>(R.id.restaurantName).text = restaurantName
+        view.findViewById<TextView>(R.id.foodItems).text = foodNames.joinToString("\n")
+        view.findViewById<TextView>(R.id.deliveryTime).text = estimatedDeliveryTime
     }
 }

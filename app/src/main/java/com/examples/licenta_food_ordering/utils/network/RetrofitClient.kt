@@ -1,5 +1,6 @@
-package com.examples.licenta_food_ordering.utils
+package com.examples.licenta_food_ordering.utils.network
 
+import com.examples.licenta_food_ordering.utils.payment.ApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -10,7 +11,7 @@ class RetrofitClient {
     companion object {
         private val retrofit by lazy {
             Retrofit.Builder()
-                .baseUrl("https://d370-82-78-85-225.ngrok-free.app") // TODO: change all the time
+                .baseUrl("https://a670-188-27-179-131.ngrok-free.app") // TODO: change all the time
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(
                     OkHttpClient.Builder().addInterceptor(LoggingInterceptor()).build()
@@ -26,7 +27,7 @@ class RetrofitClient {
 
 fun LoggingInterceptor(): HttpLoggingInterceptor {
     val loggingInterceptor = HttpLoggingInterceptor()
-    loggingInterceptor.level = HttpLoggingInterceptor.Level.BODY  // Log request and response body
+    loggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
 
     return loggingInterceptor
 }

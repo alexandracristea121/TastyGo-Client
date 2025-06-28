@@ -21,7 +21,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:layout_conversion_absoluteHeight="119dp"
-        tools:layout_conversion_absoluteWidth="411dp">>
+        tools:layout_conversion_absoluteWidth="411dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/constraintLayout"
@@ -48,13 +48,16 @@
 
             <TextView
                 android:id="@+id/menuFoodName"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Food Name"
+                android:maxLines="3"
+                android:ellipsize="end"
                 app:layout_constraintBottom_toBottomOf="@+id/menuImage"
                 app:layout_constraintStart_toEndOf="@+id/menuImage"
                 app:layout_constraintTop_toTopOf="@+id/menuImage"
+                app:layout_constraintEnd_toStartOf="@+id/menuAddToCart"
                 tools:layout_conversion_absoluteHeight="19dp"
                 tools:layout_conversion_absoluteWidth="72dp" />
 
@@ -65,14 +68,14 @@
                 android:background="@drawable/addtocartshape"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
-                android:text="Add to Cart"
+                android:text="Adauga"
                 android:textColor="@color/white"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="@+id/menuPrice"
-                app:layout_constraintHorizontal_bias="0.6"
+                app:layout_constraintHorizontal_bias="0.76"
                 app:layout_constraintStart_toStartOf="@+id/menuPrice"
                 app:layout_constraintTop_toBottomOf="@+id/menuPrice"
-                app:layout_constraintVertical_bias="0.594"
+                app:layout_constraintVertical_bias="0.652"
                 tools:layout_conversion_absoluteHeight="20dp"
                 tools:layout_conversion_absoluteWidth="80dp" />
 
@@ -81,7 +84,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="$5"
+                android:text="5 RON"
                 android:textColor="@color/textColor"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.731"

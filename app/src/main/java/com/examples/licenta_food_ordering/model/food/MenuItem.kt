@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering.model
+package com.examples.licenta_food_ordering.model.food
 
 data class MenuItem(
     val key: String? = null,
@@ -11,6 +11,5 @@ data class MenuItem(
     val restaurantName: String? = null,
     val category: String? = null,
 
-    // Local use only (not saved in Firebase)
     val isCategoryHeader: Boolean = false
 )

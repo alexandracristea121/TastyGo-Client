@@ -1,85 +1,135 @@
-package com.examples.licenta_food_ordering.service.courier
+package com.examples.licenta_food_ordering.service.courier.map
 
-import com.google.maps.GeoApiContext
+import android.os.Build
 import com.google.maps.DirectionsApi
-import com.google.maps.model.DirectionsResult
-import com.google.maps.model.LatLng as GoogleLatLng
+import com.google.maps.GeoApiContext
+import com.google.maps.GeocodingApi
 import com.google.maps.model.TrafficModel
 import com.google.maps.model.TravelMode
-import org.joda.time.DateTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONObject
+import java.io.IOException
+import java.time.Instant
+import com.google.android.gms.maps.model.LatLng as GmsLatLng
+import com.google.maps.model.LatLng as GoogleLatLng
 
 class DistanceCalculationUtility {
 
-    private val apiKey = "AIzaSyCHP4wYR_Qe0d1sasOGQ-vlmCncYK2F4KQ" // Replace with your Google API key
+    private val apiKey = "AIzaSyBgUEkRTXHL_1Z7zK8bPFoy9QswouPd27A"
 
     private val context: GeoApiContext = GeoApiContext.Builder()
         .apiKey(apiKey)
         .build()
 
-    // 🔹 Calculate real distance between two locations using Google Maps API
     fun getRealDistance(origin: String, destination: String): Double {
-        val matrix = DirectionsApi.newRequest(context)
-            .origin(origin)
-            .destination(destination)
-            .mode(TravelMode.DRIVING)  // Calculate for driving
-            .trafficModel(TrafficModel.PESSIMISTIC)  // Use pessimistic traffic model
-            .departureTime(DateTime.now())  // Set departure time to now
-            .await() // Wait for the result
+//        return 5.0 // Return 5km as mock distance
+        
+        val matrix = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            DirectionsApi.newRequest(context)
+                .origin(origin)
+                .destination(destination)
+                .mode(TravelMode.DRIVING)  // Calculate for driving
+                .trafficModel(TrafficModel.PESSIMISTIC)  // Use pessimistic traffic model
+                .departureTime(Instant.now())  // Set departure time to now
+                .await()
+        } else {
+            TODO("VERSION.SDK_INT < O")
+        } // Wait for the result
 
         // Return distance in kilometers
         return matrix.routes[0].legs[0].distance.inMeters / 1000.0
-    }
 
-    // 🔹 Get traffic estimation between the courier, restaurant, and user
-    fun getTrafficEstimation(courier: String, restaurant: String, user: String): Double {
-        // Get current time (to simulate traffic conditions)
-        val departureTime = DateTime.now()
-
-        val request = DirectionsApi.newRequest(context)
-            .mode(TravelMode.DRIVING)  // Set travel mode to driving
-            .origin(courier)  // Set courier as the origin
-            .destination(user)  // Set user as the destination
-            .departureTime(departureTime)  // Set departure time to now
-            .trafficModel(TrafficModel.BEST_GUESS)  // Use traffic model for estimation
-
-        // Execute the request
-        val result: DirectionsResult = request.await()
-
-        // Assuming there is at least one route available
-        val route = result.routes[0]
-
-        // Get the duration in traffic for the first leg (first part of the route)
-        val leg = route.legs[0]
-        val durationInTraffic = leg.durationInTraffic  // Time including traffic conditions
-
-        // Return the traffic estimated duration in minutes
-        return durationInTraffic.inSeconds.toDouble()
-    }
-
-    // 🔹 Select the minimum real distance between courier, restaurant, and user
-    fun getMinimumRealDistance(courier: String, restaurant: String, user: String): Double {
-        // Calculate distances considering traffic
-        val d1 = getRealDistance(courier, restaurant)  // Courier → Restaurant
-        val d2 = getRealDistance(restaurant, user)     // Restaurant → User
-        val d3 = getRealDistance(courier, user)        // Courier → User (direct)
-
-        val route1 = d1 + d2  // Classic route: Courier → Restaurant → User
-        val route2 = d3       // Direct route: Courier → User (if shorter)
-
-        return minOf(route1, route2)  // Return the shortest distance
     }
 
     // 🔹 Geocode an address to get its coordinates (latitude, longitude)
-    fun getCoordinatesFromAddress(address: String): com.google.android.gms.maps.model.LatLng {
+    suspend fun getCoordinatesFromAddress(address: String): GmsLatLng = withContext(Dispatchers.IO) {
+        // Mock coordinates for testing
+        return@withContext GmsLatLng(44.4268, 26.1025) // Example coordinates for Bucharest
+        
         try {
-            val results = com.google.maps.GeocodingApi.geocode(context, address).await()
+            val results = GeocodingApi.geocode(context, address).await()
             if (results.isNotEmpty()) {
                 val location: GoogleLatLng = results[0].geometry.location
-                return com.google.android.gms.maps.model.LatLng(location.lat, location.lng)
+                return@withContext GmsLatLng(location.lat, location.lng)
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return com.google.android.gms.maps.model.LatLng(0.0, 0.0) // Return invalid location in case of error
+        return@withContext GmsLatLng(0.0, 0.0)
+    }
+    fun getEstimatedDeliveryTime(
+        origin: String,
+        destination: String,
+        callback: (String?) -> Unit
+    ) {
+        // Mock implementation for testing
+//        callback("30 mins")
+
+        // TODO: uncomment when doing demo
+        val apiKey = "AIzaSyBgUEkRTXHL_1Z7zK8bPFoy9QswouPd27A"
+        val url = "https://maps.googleapis.com/maps/api/distancematrix/json" +
+                "?origins=${origin}" +
+                "&destinations=${destination}" +
+                "&key=${apiKey}"
+
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                callback(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                val json = JSONObject(responseBody ?: "")
+                val rows = json.getJSONArray("rows")
+                val elements = rows.getJSONObject(0).getJSONArray("elements")
+                val durationObj = elements.getJSONObject(0).getJSONObject("duration")
+                val durationText = durationObj.getString("text")
+                callback(durationText)
+            }
+        })
+    }
+
+    fun getAddressFromCoordinates(
+        latitude: Double,
+        longitude: Double,
+        callback: (String?) -> Unit
+    ) {
+        // Mock address for testing
+//        callback("Test Address, Bucharest, Romania")
+        
+        val apiKey = "AIzaSyBgUEkRTXHL_1Z7zK8bPFoy9QswouPd27A"
+        val url = "https://maps.googleapis.com/maps/api/geocode/json" +
+                "?latlng=${latitude},${longitude}" +
+                "&key=${apiKey}"
+
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                callback(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                val json = JSONObject(responseBody ?: "")
+                val results = json.getJSONArray("results")
+                if (results.length() > 0) {
+                    val address = results.getJSONObject(0).getString("formatted_address")
+                    callback(address)
+                } else {
+                    callback(null)
+                }
+            }
+        })
     }
 }

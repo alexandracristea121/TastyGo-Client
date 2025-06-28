@@ -1,9 +1,8 @@
-package com.examples.licenta_food_ordering.model
+package com.examples.licenta_food_ordering.model.order
 
 import android.os.Parcel
 import android.os.Parcelable
 import java.util.ArrayList
-import java.util.Date
 
 class OrderDetails() : Parcelable {
     var userUid: String? = null
@@ -27,6 +26,8 @@ class OrderDetails() : Parcelable {
     var orderTime: String? = null
     var adminUserId: String? = null
     var restaurantName: String? = null
+    var courierId: String? = null
+    var estimatedDeliveryTime: String? = null
 
     constructor(parcel: Parcel) : this() {
         userUid = parcel.readString()
@@ -50,6 +51,8 @@ class OrderDetails() : Parcelable {
         orderTime = parcel.readString()
         adminUserId = parcel.readString()
         restaurantName = parcel.readString()
+        courierId = parcel.readString()
+        estimatedDeliveryTime = parcel.readString()
     }
 
     constructor(
@@ -72,7 +75,9 @@ class OrderDetails() : Parcelable {
         orderAccepted: Boolean,
         paymentReceived: Boolean,
         adminUserId: String?,
-        restaurantName: String?
+        restaurantName: String?,
+        courierId: String?,
+        estimatedDeliveryTime: String?
     ) : this() {
         this.userUid = userId
         this.userName = name
@@ -94,6 +99,8 @@ class OrderDetails() : Parcelable {
         this.paymentReceived = paymentReceived
         this.adminUserId = adminUserId
         this.restaurantName = restaurantName
+        this.courierId = courierId
+        this.estimatedDeliveryTime = estimatedDeliveryTime
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -115,6 +122,8 @@ class OrderDetails() : Parcelable {
         parcel.writeString(itemPushkey)
         parcel.writeString(orderTime)
         parcel.writeString(adminUserId)
+        parcel.writeString(restaurantName)
+        parcel.writeString(courierId)
     }
 
     override fun describeContents(): Int {

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.androidx.navigation.safe.args)
 }
 
 android {
@@ -53,6 +54,7 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation("org.jsoup:jsoup:1.15.3")
 
     // Firebase dependencies
     implementation(libs.firebase.auth)
@@ -65,6 +67,7 @@ dependencies {
     implementation(libs.androidx.tools.core)
     implementation(libs.play.services.wallet)
     implementation(libs.androidx.espresso.core)
+    implementation("com.google.android.libraries.places:places:3.0.0")
 
     // Testing libraries
     testImplementation(libs.junit)

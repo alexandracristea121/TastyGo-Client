@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering
+package com.examples.licenta_food_ordering.presentation.activity
 
 import android.Manifest
 import android.content.Intent
@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.licenta_food_ordering.R
-import com.examples.licenta_food_ordering.model.MenuItem
+import com.examples.licenta_food_ordering.model.food.MenuItem
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -35,22 +35,15 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_restaurant_map)
 
-        // Set the status bar color to white
         window.statusBarColor = ContextCompat.getColor(this, R.color.white)
-
-        // Use WindowInsetsController for modern status bar styling
         WindowCompat.setDecorFitsSystemWindows(window, true)
         val insetsController = WindowInsetsControllerCompat(window, window.decorView)
         insetsController.isAppearanceLightStatusBars = true
 
-        // Initialize Firebase
         database = FirebaseDatabase.getInstance()
         restaurantsRef = database.getReference("Restaurants")
-
-        // Initialize the FusedLocationProviderClient
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // Check if Google Play services is available
         if (isGooglePlayServicesAvailable()) {
             val mapFragment = SupportMapFragment.newInstance()
             supportFragmentManager.beginTransaction()
@@ -66,7 +59,6 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Check if the app has permission to access location
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -76,13 +68,10 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            // Enable the My Location layer
             mMap.isMyLocationEnabled = true
 
-            // Get the last known location of the device
             fusedLocationClient.lastLocation
                 .addOnSuccessListener { location: Location? ->
-                    // If a location is found, move the camera to that location
                     location?.let {
                         val currentLatLng = LatLng(it.latitude, it.longitude)
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
@@ -91,7 +80,6 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
                 }
         } else {
-            // If permission is not granted, request permission
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
@@ -99,7 +87,6 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
             )
         }
 
-        // Fetch restaurant data from Firebase and add markers
         fetchRestaurants()
     }
 
@@ -116,12 +103,10 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
                                 .title(restaurant.name)
                         )
 
-                        // Set a tag on the marker (restaurant ID) to identify it later
                         marker?.tag = restaurant.id
                     }
                 }
 
-                // Set up a listener for when a marker is clicked
                 mMap.setOnMarkerClickListener { marker ->
                     val restaurantId = marker.tag as? String
                     if (restaurantId != null) {
@@ -132,7 +117,7 @@ class RestaurantMapActivity : AppCompatActivity(), OnMapReadyCallback {
                         intent.putExtra("RESTAURANT_ID", restaurantId)
                         startActivity(intent)
                     }
-                    true // Indicate that we've handled the click
+                    true
                 }
             }
 
@@ -174,7 +159,7 @@ data class Restaurant(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val address: String = "",
-    var menu: Map<String, MenuItem>? = null, // <-- made nullable
+    var menu: Map<String, MenuItem>? = null,
     val categories: List<String> = listOf(),
     val adminUserId: String = "",
     val phoneNumber: String = "",
@@ -186,7 +171,7 @@ data class Restaurant(
         latitude = 0.0,
         longitude = 0.0,
         address = "",
-        menu = null, // <-- match the property type
+        menu = null,
         categories = listOf(),
         adminUserId = "",
         phoneNumber = "",

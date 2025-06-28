@@ -1,4 +1,6 @@
-package com.examples.licenta_food_ordering
+@file:Suppress("DEPRECATION")
+
+package com.examples.licenta_food_ordering.presentation.activity
 
 import android.app.Activity
 import android.content.Intent
@@ -11,7 +13,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.ActivityLoginBinding
-import com.examples.licenta_food_ordering.model.UserModel
+import com.examples.licenta_food_ordering.model.user.UserModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -22,6 +24,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 
+@Suppress("NAME_SHADOWING")
 class LoginActivity : AppCompatActivity() {
     private var userName: String? = null
     private lateinit var email: String
@@ -59,7 +62,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         binding.donthavebutton.setOnClickListener {
-            val intent = Intent(this, SignActivity::class.java)
+            val intent = Intent(this, SignUpActivity::class.java)
             startActivity(intent)
         }
 

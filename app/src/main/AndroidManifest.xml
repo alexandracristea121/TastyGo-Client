@@ -6,9 +6,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
+        android:largeHeap="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -19,32 +22,32 @@
         tools:targetApi="31">
 
         <activity
-            android:name="com.examples.licenta_food_ordering.RestaurantMapActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.RestaurantMapActivity"
             android:label=""
             android:exported="true" />
 
         <activity
-            android:name="com.examples.licenta_food_ordering.OrderDetailsActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.OrderDetailsActivity"
             android:label=""
             android:exported="true" />
 
         <activity
-            android:name=".RecentOrderItems"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.RecentOrdersActivity"
             android:exported="false" />
         <activity
-            android:name="com.examples.licenta_food_ordering.DetailsActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.DetailsActivity"
             android:exported="false" />
         <activity
-            android:name="com.examples.licenta_food_ordering.PayOutActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.PaymentActivity"
             android:exported="false" />
         <activity
-            android:name="com.examples.licenta_food_ordering.ChooseLocationActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.LocationSelectionActivity"
             android:exported="true" />
         <activity
-            android:name="com.examples.licenta_food_ordering.SignActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.SignUpActivity"
             android:exported="true" />
         <activity
-            android:name="com.examples.licenta_food_ordering.LoginActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -52,18 +55,14 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.examples.licenta_food_ordering.StartActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.examples.licenta_food_ordering.Splash_Screen"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.RestaurantDetailsActivity"
             android:exported="true" />
         <activity
-            android:name="com.examples.licenta_food_ordering.RestaurantDetailsActivity"
-            android:exported="true" />
-        <activity
-            android:name="com.examples.licenta_food_ordering.MainActivity"
+            android:name="com.examples.licenta_food_ordering.presentation.activity.MainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustPan" />
+
+        <activity android:name="com.examples.licenta_food_ordering.presentation.activity.ChatbotActivity"></activity>
 
         <!-- Google Sign-In config -->
         <meta-data

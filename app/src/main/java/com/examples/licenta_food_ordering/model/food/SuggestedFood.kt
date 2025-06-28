@@ -1,4 +1,4 @@
-package com.examples.licenta_food_ordering.model
+package com.examples.licenta_food_ordering.model.food
 
 data class SuggestedFood(
     val restaurantName: String,

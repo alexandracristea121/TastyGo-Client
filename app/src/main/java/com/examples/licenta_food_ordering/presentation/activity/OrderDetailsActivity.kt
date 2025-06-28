@@ -1,60 +1,106 @@
-package com.examples.licenta_food_ordering
+package com.examples.licenta_food_ordering.presentation.activity
 
+import android.annotation.SuppressLint
 import android.os.Bundle
-import android.widget.ImageButton
-import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.example.licenta_food_ordering.R
-import com.examples.licenta_food_ordering.model.OrderDetails
+import com.example.licenta_food_ordering.databinding.ActivityOrderDetailsBinding
+import com.examples.licenta_food_ordering.model.order.OrderDetails
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 
+@Suppress("DEPRECATION")
 class OrderDetailsActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityOrderDetailsBinding
+    private lateinit var database: FirebaseDatabase
+    private lateinit var ordersRef: DatabaseReference
+
+    @SuppressLint("ObsoleteSdkInt")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_order_details)
+        binding = ActivityOrderDetailsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        window.statusBarColor = ContextCompat.getColor(this, R.color.white)
-
-        // Set the action bar color to white programmatically
-        supportActionBar?.setBackgroundDrawable(resources.getDrawable(R.color.white))
-
-        // Enable the back button in the action bar (optional, if you need the system back button)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        // Retrieve the OrderDetails object passed via Intent
-        val orderDetails: OrderDetails? = intent.getParcelableExtra("orderDetails")
-
-        // Check if orderDetails is not null and update the UI with the order information
-        orderDetails?.let {
-            findViewById<TextView>(R.id.tvUserName).text = it.userName
-            findViewById<TextView>(R.id.tvUserLocation).text = it.userLocation
-            findViewById<TextView>(R.id.tvRestaurantLocation).text = it.restaurantLocation
-            findViewById<TextView>(R.id.tvFoodNames).text = it.foodNames?.joinToString(", ")
-            findViewById<TextView>(R.id.tvTotalPrice).text = it.totalPrice
-            findViewById<TextView>(R.id.tvPhoneNumber).text = it.phoneNumber
-            findViewById<TextView>(R.id.tvOrderStatus).text = "Delivered: ${it.orderDelivered}"
-            findViewById<TextView>(R.id.tvCurrentTime).text = "Order Time: ${it.orderTime}"
+        window.statusBarColor = getColor(android.R.color.white)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
         }
 
-        // Handle the back button click event
-        val backButton: ImageButton = findViewById(R.id.backButton)
-        backButton.setOnClickListener {
-            onBackPressed()  // Go back to the previous activity
+        database = FirebaseDatabase.getInstance()
+        ordersRef = database.getReference("orders")
+
+        val orderId = intent.getStringExtra("orderId")
+        if (orderId.isNullOrEmpty()) {
+            Toast.makeText(this, "No order ID provided", Toast.LENGTH_SHORT).show()
+            finish()
+            return
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        setupBackButton()
+        fetchOrderDetails(orderId)
+    }
+
+    private fun setupBackButton() {
+        binding.backButton.setOnClickListener {
+            onBackPressed()
         }
     }
 
-    // Handle the system back button (optional if you need custom behavior for back press)
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
+    private fun fetchOrderDetails(orderId: String) {
+        ordersRef.child(orderId).get().addOnSuccessListener { snapshot ->
+            if (snapshot.exists()) {
+                val order = snapshot.getValue(OrderDetails::class.java)
+                if (order != null) {
+                    val foodItems = order.foodNames?.joinToString("\n") ?: "No items"
+
+                    val status = buildString {
+                        append(when {
+                            order.orderDelivered -> "Delivered"
+                            order.orderAccepted -> "Accepted"
+                            else -> "Pending"
+                        })
+                        if (order.paymentReceived) {
+                            append(" (Paid)")
+                        }
+                    }
+
+                    val restaurantAddress = order.restaurantLocation
+                    if (!restaurantAddress.isNullOrBlank()) {
+                        val ref = FirebaseDatabase.getInstance().getReference("Restaurants")
+                        ref.orderByChild("address").equalTo(restaurantAddress)
+                            .get().addOnSuccessListener { restSnap ->
+                                val name = restSnap.children.firstOrNull()?.child("name")?.getValue(String::class.java)
+                                binding.tvUserName.text = name ?: "N/A"
+                            }.addOnFailureListener {
+                                binding.tvUserName.text = "N/A"
+                            }
+                    } else {
+                        binding.tvUserName.text = "N/A"
+                    }
+
+                    binding.apply {
+                        tvUserLocation.text = order.userLocation ?: "N/A"
+                        tvRestaurantLocation.text = order.restaurantLocation ?: "N/A"
+                        tvFoodNames.text = foodItems
+                        tvTotalPrice.text = order.totalPrice?.replace("$", "RON") ?: "0.00"
+                        tvPhoneNumber.text = order.phoneNumber ?: "N/A"
+                        tvOrderStatus.text = status
+                        tvCurrentTime.text = buildString {
+                            append(order.orderTime ?: "N/A")
+                            if (order.estimatedDeliveryTime != null) {
+                                append("\nTimp estimativ de livrare: ${order.estimatedDeliveryTime}")
+                            }
+                        }
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Order not found", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }.addOnFailureListener {
+            Toast.makeText(this, "Error fetching order details", Toast.LENGTH_SHORT).show()
+            finish()
+        }
     }
 }

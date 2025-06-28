@@ -1,12 +1,14 @@
-package com.examples.licenta_food_ordering
+package com.examples.licenta_food_ordering.presentation.activity
 
-import SharedPrefsHelper.saveRestaurantNames
-import android.content.Context
+import android.annotation.SuppressLint
+import com.examples.licenta_food_ordering.utils.preferences.SharedPrefsHelper.saveRestaurantNames
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -14,13 +16,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.licenta_food_ordering.R
 import com.example.licenta_food_ordering.databinding.ActivityRestaurantDetailsBinding
-import com.examples.licenta_food_ordering.adaptar.MenuAdapter
-import com.examples.licenta_food_ordering.model.MenuItem
+import com.examples.licenta_food_ordering.adapter.MenuItemsAdapter
+import com.examples.licenta_food_ordering.model.food.MenuItem
+import com.examples.licenta_food_ordering.utils.preferences.SharedPrefsHelper
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 
+@Suppress("DEPRECATION")
 class RestaurantDetailsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRestaurantDetailsBinding
@@ -32,76 +37,96 @@ class RestaurantDetailsActivity : AppCompatActivity() {
     private lateinit var backButton: ImageButton
     private lateinit var menuRecyclerView: RecyclerView
     private lateinit var categorySpinner: Spinner
+    private lateinit var restaurantImageView: ImageView
 
-    private lateinit var menuAdapter: MenuAdapter
+    private lateinit var menuItemsAdapter: MenuItemsAdapter
     private var menuItems = mutableListOf<MenuItem>()
     private var categories = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRestaurantDetailsBinding.inflate(layoutInflater)
-        enableEdgeToEdge()  // Optional: for edge-to-edge layout
+        enableEdgeToEdge()
         setContentView(binding.root)
 
-        // Set up Firebase reference
         database = FirebaseDatabase.getInstance()
         restaurantsRef = database.getReference("Restaurants")
-
-        // Get the restaurant ID from the intent
         restaurantId = intent.getStringExtra("RESTAURANT_ID") ?: ""
 
-        // Find the UI elements
+        if (restaurantId.isEmpty()) {
+            Toast.makeText(this, "Restaurant ID not found", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
         nameTextView = findViewById(R.id.restaurantName)
-        // Save the Restaurant name to the context
         addressTextView = findViewById(R.id.restaurantAddress)
         backButton = findViewById(R.id.backButton)
         menuRecyclerView = findViewById(R.id.menuRecyclerView)
         categorySpinner = findViewById(R.id.categoryFilterSpinner)
+        restaurantImageView = findViewById(R.id.restaurantImage)
 
-        // Set up RecyclerView for menu items
-        menuRecyclerView.layoutManager = LinearLayoutManager(this)
-        menuAdapter = MenuAdapter(menuItems, this)
-        menuRecyclerView.adapter = menuAdapter
+        setupRecyclerView()
 
-        // Set up the back button click listener
         backButton.setOnClickListener {
             onBackPressed()
         }
 
-        // Fetch restaurant details
         fetchRestaurantDetails()
-
-        // Set up the Bottom Navigation and handle fragment switching
     }
 
-    // Fetch restaurant details from Firebase
+    private fun setupRecyclerView() {
+        menuItemsAdapter = MenuItemsAdapter(
+            menuItems = menuItems,
+            context = this,
+            onItemClick = { menuItem ->
+                val intent = Intent(this, DetailsActivity::class.java).apply {
+                    putExtra("MenuItemName", menuItem.foodName)
+                    putExtra("MenuItemImage", menuItem.foodImage)
+                    putExtra("MenuItemDescription", menuItem.foodDescription)
+                    putExtra("MenuItemPrice", menuItem.foodPrice)
+                }
+                startActivity(intent)
+            }
+        )
+        binding.menuRecyclerView.apply {
+            adapter = menuItemsAdapter
+            layoutManager = LinearLayoutManager(this@RestaurantDetailsActivity)
+        }
+    }
+
     private fun fetchRestaurantDetails() {
         restaurantsRef.child(restaurantId).get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
                 val restaurant = snapshot.getValue(Restaurant::class.java)
                 if (restaurant != null) {
-                    // Set restaurant details on the UI
                     nameTextView.text = restaurant.name
-                    if (restaurant.name != null || restaurant.name != "Restaurant Name") {
+                    if (restaurant.name.isNotEmpty()) {
                         saveRestaurantNames(this@RestaurantDetailsActivity, restaurant.name)
                     }
-                    addressTextView.text = restaurant.address
+                    addressTextView.text = "Adresa: " + restaurant.address
 
-                    // Save admin user id to the context
+                    restaurant.logo?.let { logoUrl ->
+                        Glide.with(this@RestaurantDetailsActivity)
+                            .load(logoUrl)
+                            .centerCrop()
+                            .placeholder(R.drawable.food_placeholder)
+                            .error(R.drawable.food_placeholder)
+                            .into(restaurantImageView)
+                    }
+
                     SharedPrefsHelper.saveAdminUserId(this@RestaurantDetailsActivity, restaurant.adminUserId)
 
-                    // Fetch categories from the menu items
                     fetchCategories()
 
-                    // Fetch the menu items
-                    val menu = restaurant.menu // Map of menu items
+                    val menu = restaurant.menu
                     if (menu != null) {
                         if (menu.isNotEmpty()) {
                             menuItems.clear()
                             for (menuItem in menu.values) {
                                 menuItems.add(menuItem)
                             }
-                            menuAdapter.notifyDataSetChanged() // Notify adapter of new data
+                            menuItemsAdapter.submitList(menuItems)
                         }
                     }
                 }
@@ -113,8 +138,6 @@ class RestaurantDetailsActivity : AppCompatActivity() {
         }
     }
 
-    // TODO: When text is too long -> Display only a part of the text
-    // Fetch categories from the menu items
     private fun fetchCategories() {
         val menuRef = restaurantsRef.child(restaurantId).child("menu")
 
@@ -128,7 +151,7 @@ class RestaurantDetailsActivity : AppCompatActivity() {
             }
 
             categories = uniqueCategories.toMutableList()
-            categories.add(0, "Categories") // Add "All" option for displaying all menu items
+            categories.add(0, "Categorii")
 
             setupCategoryFilter()
         }.addOnFailureListener {
@@ -136,7 +159,6 @@ class RestaurantDetailsActivity : AppCompatActivity() {
         }
     }
 
-    // Set up the category filter Spinner
     private fun setupCategoryFilter() {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -150,10 +172,10 @@ class RestaurantDetailsActivity : AppCompatActivity() {
                 id: Long
             ) {
                 val selectedCategory = categories[position]
-                if (selectedCategory == "Categories") {
-                    fetchMenuItems() // Fetch all items if "All" is selected
+                if (selectedCategory == "Categorii") {
+                    fetchMenuItems()
                 } else {
-                    fetchMenuItemsByCategory(selectedCategory) // Fetch items for the selected category
+                    fetchMenuItemsByCategory(selectedCategory)
                 }
             }
 
@@ -161,7 +183,7 @@ class RestaurantDetailsActivity : AppCompatActivity() {
         }
     }
 
-    // Fetch all menu items from Firebase
+    @SuppressLint("NotifyDataSetChanged")
     private fun fetchMenuItems() {
         val menuRef: DatabaseReference =
             database.getReference("Restaurants").child(restaurantId).child("menu")
@@ -173,13 +195,13 @@ class RestaurantDetailsActivity : AppCompatActivity() {
                     menuItems.add(it)
                 }
             }
-            menuAdapter.notifyDataSetChanged()
+            menuItemsAdapter.notifyDataSetChanged()
         }.addOnFailureListener {
             Toast.makeText(this, "Error fetching menu items", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Fetch menu items by category from Firebase
+    @SuppressLint("NotifyDataSetChanged")
     private fun fetchMenuItemsByCategory(category: String) {
         val menuRef: DatabaseReference =
             database.getReference("Restaurants").child(restaurantId).child("menu")
@@ -194,12 +216,12 @@ class RestaurantDetailsActivity : AppCompatActivity() {
                         }
                     }
                 }
-                menuAdapter.notifyDataSetChanged()
+                menuItemsAdapter.notifyDataSetChanged()
             } else {
                 Toast.makeText(this, "No items found for category: $category", Toast.LENGTH_SHORT)
                     .show()
             }
-        }.addOnFailureListener { exception ->
+        }.addOnFailureListener { _ ->
             Toast.makeText(this, "Error fetching filtered menu items", Toast.LENGTH_SHORT).show()
         }
     }

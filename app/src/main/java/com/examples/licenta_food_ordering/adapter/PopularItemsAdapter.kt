@@ -1,5 +1,6 @@
-package com.examples.licenta_food_ordering.adaptar
+package com.examples.licenta_food_ordering.adapter
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.view.LayoutInflater
@@ -12,9 +13,17 @@ import com.examples.licenta_food_ordering.presentation.activity.Restaurant
 import com.examples.licenta_food_ordering.presentation.activity.RestaurantDetailsActivity
 
 class PopularItemsAdapter(
-    private val items: List<Restaurant>,
+    items: List<Restaurant>,
     private val context: Context
 ) : RecyclerView.Adapter<PopularItemsAdapter.PopulerViewHolder>() {
+
+    private var restaurants: List<Restaurant> = items
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun updateRestaurants(newRestaurants: List<Restaurant>) {
+        restaurants = newRestaurants
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PopulerViewHolder {
         val binding = PopulerItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -22,7 +31,7 @@ class PopularItemsAdapter(
     }
 
     override fun onBindViewHolder(holder: PopulerViewHolder, position: Int) {
-        val restaurant = items[position]
+        val restaurant = restaurants[position]
         holder.bind(restaurant)
 
         holder.itemView.setOnClickListener {
@@ -35,14 +44,12 @@ class PopularItemsAdapter(
         }
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int = restaurants.size
 
     class PopulerViewHolder(private val binding: PopulerItemBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(restaurant: Restaurant) {
             binding.restaurantName.text = restaurant.name
             binding.restaurantAddress.text = restaurant.address
-
-            // Load logo from URL using Glide
             Glide.with(binding.root.context)
                 .load(restaurant.logo)
                 .placeholder(R.drawable.restaurant_logo)
