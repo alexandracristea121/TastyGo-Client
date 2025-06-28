@@ -2,21 +2,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="10dp"
     android:background="#f5f5f5"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:paddingTop="15dp">
 
     <!-- Top Bar with Back Button and Restaurant Name centered -->
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:paddingTop="10dp">
 
         <ImageButton
             android:id="@+id/backButton"
             android:layout_width="wrap_content"
-            android:layout_height="42dp"
+            android:layout_height="52dp"
             android:layout_marginEnd="8dp"
             android:background="@android:color/transparent"
             android:contentDescription="Back"
@@ -24,8 +28,8 @@
 
         <TextView
             android:id="@+id/restaurantName"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_width="246dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
             android:text="Restaurant Name"
@@ -43,16 +47,16 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
         <ImageView
             android:id="@+id/locationPin"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_marginEnd="8dp"
-            android:src="@drawable/location_pin"
-            android:contentDescription="Location Pin" />
+            android:contentDescription="Location Pin"
+            android:src="@drawable/location_pin" />
 
         <TextView
             android:id="@+id/restaurantAddress"
@@ -70,13 +74,37 @@
         android:layout_marginVertical="16dp"
         android:background="#ddd" />
 
-    <Spinner
-        android:id="@+id/categoryFilterSpinner"
+    <!-- Spinner with Right-Aligned Dropdown Icon -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="Select Category"
-        android:padding="8dp" />
+        android:layout_marginTop="16dp">
+
+        <Spinner
+            android:id="@+id/categoryFilterSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:background="@android:color/transparent"
+            android:popupBackground="@color/white"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="40dp" /> <!-- Ensures space for the icon -->
+
+        <ImageView
+            android:id="@+id/dropdownIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="12dp"
+            android:src="@drawable/dropdown"
+            android:contentDescription="Dropdown Icon"
+            android:clickable="true"
+            android:focusable="true" /> <!-- Make sure it is clickable -->
+
+    </RelativeLayout>
 
     <!-- Menu RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView

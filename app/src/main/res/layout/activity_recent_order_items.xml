@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    tools:context=".RecentOrderItems">
+    tools:context="com.examples.licenta_food_ordering.presentation.activity.RecentOrdersActivity">
 
     <TextView
         android:id="@+id/textView25"
